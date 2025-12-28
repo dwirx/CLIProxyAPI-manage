@@ -7,15 +7,18 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
+	"mime"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 )
 
-//go:embed gui/index.html
+//go:embed gui/dist/* gui/dist/assets/* gui/legacy.html
 var guiHTML embed.FS
 
 func runGUI(args []string) {
@@ -64,6 +67,9 @@ func guiMux() http.Handler {
 	mux.HandleFunc("/api/stats", handleStats)
 	mux.HandleFunc("/api/test", handleTestAPI)
 	mux.HandleFunc("/api/playground", handlePlayground)
+	mux.HandleFunc("/api/analytics/summary", handleAnalyticsSummary)
+	mux.HandleFunc("/api/analytics/recent", handleAnalyticsRecent)
+	mux.HandleFunc("/api/pricing", handlePricing)
 	mux.HandleFunc("/api/update/check", handleUpdateCheck)
 	mux.HandleFunc("/api/update/apply", handleUpdateApply)
 	mux.HandleFunc("/api/version", handleVersion)
@@ -74,17 +80,28 @@ func guiMux() http.Handler {
 }
 
 func handleGUI(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	data, err := guiHTML.ReadFile("gui/index.html")
+	distFS, err := fs.Sub(guiHTML, "gui/dist")
 	if err != nil {
 		http.Error(w, "GUI not available", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(data)
+
+	if r.URL.Path == "/" {
+		serveEmbeddedFile(w, r, distFS, "index.html")
+		return
+	}
+
+	requestPath := path.Clean(strings.TrimPrefix(r.URL.Path, "/"))
+	if requestPath == "." {
+		requestPath = "index.html"
+	}
+
+	if existsInFS(distFS, requestPath) {
+		serveEmbeddedFile(w, r, distFS, requestPath)
+		return
+	}
+
+	serveEmbeddedFile(w, r, distFS, "index.html")
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
@@ -418,6 +435,32 @@ func readBodySnippet(r io.Reader) string {
 		return "no response body"
 	}
 	return msg
+}
+
+func serveEmbeddedFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string) {
+	data, err := fs.ReadFile(fsys, name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	ext := path.Ext(name)
+	if contentType := mime.TypeByExtension(ext); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	} else if strings.HasSuffix(name, ".html") {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
+
+	_, _ = w.Write(data)
+}
+
+func existsInFS(fsys fs.FS, name string) bool {
+	file, err := fsys.Open(name)
+	if err != nil {
+		return false
+	}
+	_ = file.Close()
+	return true
 }
 
 func handleUpdateCheck(w http.ResponseWriter, r *http.Request) {

@@ -90,6 +90,18 @@ betacliproxyapi gui
 
 Opens a local web interface (default: http://localhost:8318) for managing the server.
 
+### 5. Build React GUI (optional)
+
+The GUI source now lives in `betaCLIProxyAPI/gui` and is built with Vite + React.
+Build assets will be emitted into `betaCLIProxyAPI/cmd/betacliproxyapi/gui/dist` and
+embedded by the Go server.
+
+```bash
+cd betaCLIProxyAPI/gui
+npm install
+npm run build
+```
+
 ## Commands
 
 ### `install`
