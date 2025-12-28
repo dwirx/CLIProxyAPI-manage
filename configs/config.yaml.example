@@ -1,0 +1,32 @@
+# CLIProxyAPI-Plus Configuration
+# Copy this to ~/.cli-proxy-api/config.yaml
+
+# Server port (default: 8317)
+port: 8317
+
+# Directory to store OAuth tokens
+# Windows: C:/Users/YourName/.cli-proxy-api
+# Linux/Mac: ~/.cli-proxy-api
+auth-dir: "~/.cli-proxy-api"
+
+# API keys for authentication (use any dummy key)
+api-keys:
+  - "sk-dummy"
+
+# Quota exceeded behavior
+quota-exceeded:
+  switch-project: true      # Auto-switch to another project when quota exceeded
+  switch-preview-model: true # Auto-switch to preview model when quota exceeded
+
+# Open OAuth URLs in incognito/private browser mode
+# Useful for multiple account logins
+incognito-browser: true
+
+# Number of retry attempts for failed requests
+request-retry: 3
+
+# Remote management settings
+remote-management:
+  allow-remote: false       # Only allow localhost access
+  secret-key: ""            # Leave empty to disable management API
+  disable-control-panel: false
