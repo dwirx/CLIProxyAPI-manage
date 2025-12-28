@@ -1,0 +1,76 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+betacliproxyapi
+betacliproxyapi.exe
+betacliproxyapi-*
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.txt
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Build output directory
+dist/
+build/
+bin/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# User-specific config files (not examples)
+config.yaml
+droid-config.json
+*.local.yaml
+*.local.json
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS-specific files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Version info (generated at runtime)
+version.json
+
+# Test files
+testdata/*.yaml
+testdata/*.json
+!testdata/*.example.*
+
+# Compiled binaries in scripts
+scripts/*.exe
+scripts/*.bin
