@@ -4,6 +4,7 @@ import { Dashboard } from './routes/Dashboard';
 import { Accounts } from './routes/Accounts';
 import { ApiProxy } from './routes/ApiProxy';
 import { Settings } from './routes/Settings';
+import { PlaygroundFull } from './routes/PlaygroundFull';
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/proxy" element={<ApiProxy />} />
+        <Route path="/playground" element={<PlaygroundFull />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>

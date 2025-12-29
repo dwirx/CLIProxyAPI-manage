@@ -1,0 +1,3066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLIProxyAPI+ Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-0: #0B0F14;
+            --bg-1: #111720;
+            --bg-2: #151C27;
+            --bg-3: #1B2432;
+            --bg-hover: #223041;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.14);
+            --text-1: #F8FAFC;
+            --text-2: #CBD5E1;
+            --text-3: #94A3B8;
+            --accent: #14B8A6;
+            --accent-hover: #0EA5A4;
+            --accent-subtle: rgba(20, 184, 166, 0.16);
+            --success: #22C55E;
+            --success-subtle: rgba(34, 197, 94, 0.16);
+            --warning: #F59E0B;
+            --warning-subtle: rgba(245, 158, 11, 0.16);
+            --error: #EF4444;
+            --error-subtle: rgba(239, 68, 68, 0.15);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 150ms ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-0);
+            color: var(--text-1);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle background gradient */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(20, 184, 166, 0.16), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(20, 184, 166, 0.08), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        .module {
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+        }
+
+        .module .section-header {
+            margin-bottom: 12px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        /* Stats Cards */
+        .stats-section {
+            margin-bottom: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Geist Mono', monospace;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-1);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card.success .stat-value { color: var(--success); }
+        .stat-card.warning .stat-value { color: var(--warning); }
+
+        /* Linear-style Update Button */
+        .update-btn {
+            padding: 8px 16px;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-family: 'Geist', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            outline: none;
+        }
+
+        .update-btn:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 2px 4px rgba(20, 184, 166, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .update-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Update Available State */
+        .update-btn.update-available {
+            box-shadow: 
+                0 1px 2px rgba(0, 0, 0, 0.1),
+                0 0 0 2px rgba(20, 184, 166, 0.25);
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+
+        .update-btn.update-available:hover {
+            box-shadow: 
+                0 2px 4px rgba(20, 184, 166, 0.3),
+                0 0 0 2px rgba(20, 184, 166, 0.35);
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% {
+                box-shadow: 
+                    0 1px 2px rgba(0, 0, 0, 0.1),
+                    0 0 0 2px rgba(20, 184, 166, 0.25);
+            }
+            50% {
+                box-shadow: 
+                    0 1px 2px rgba(0, 0, 0, 0.1),
+                    0 0 0 2px rgba(20, 184, 166, 0.45);
+            }
+        }
+
+        /* Update Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 200ms ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 420px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 200ms ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 18px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-1);
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .update-version {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .update-version .current {
+            font-family: 'Geist Mono', monospace;
+            font-size: 13px;
+            color: var(--text-3);
+        }
+
+        .update-version .arrow {
+            color: var(--text-3);
+        }
+
+        .update-version .new {
+            font-family: 'Geist Mono', monospace;
+            font-size: 13px;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .release-notes {
+            background: var(--bg-2);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            font-size: 13px;
+            color: var(--text-2);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer .btn {
+            flex: none;
+            min-width: 100px;
+        }
+
+        /* Subtle background gradient */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 92, 255, 0.08), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(124, 92, 255, 0.04), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        /* Stats Cards */
+        .stats-section {
+            margin-bottom: 32px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Geist Mono', monospace;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-1);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card.success .stat-value { color: var(--success); }
+        .stat-card.warning .stat-value { color: var(--warning); }
+
+        /* Linear-style Update Button */
+        .update-btn {
+            padding: 8px 16px;
+            background: #8B5CF6;
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-family: 'Geist', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            outline: none;
+        }
+
+        .update-btn:hover {
+            background: #7C3AED;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .update-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Update Available State */
+        .update-btn.update-available {
+            box-shadow: 
+                0 1px 2px rgba(0, 0, 0, 0.1),
+                0 0 0 2px rgba(139, 92, 246, 0.2);
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+
+        .update-btn.update-available:hover {
+            box-shadow: 
+                0 2px 4px rgba(139, 92, 246, 0.3),
+                0 0 0 2px rgba(139, 92, 246, 0.3);
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% {
+                box-shadow: 
+                    0 1px 2px rgba(0, 0, 0, 0.1),
+                    0 0 0 2px rgba(139, 92, 246, 0.2);
+            }
+            50% {
+                box-shadow: 
+                    0 1px 2px rgba(0, 0, 0, 0.1),
+                    0 0 0 2px rgba(139, 92, 246, 0.4);
+            }
+        }
+
+        /* Update Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 200ms ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 420px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 200ms ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 18px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-1);
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .update-version {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .update-version .current {
+            font-family: 'Geist Mono', monospace;
+            font-size: 13px;
+            color: var(--text-3);
+        }
+
+        .update-version .arrow {
+            color: var(--text-3);
+        }
+
+        .update-version .new {
+            font-family: 'Geist Mono', monospace;
+            font-size: 13px;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .release-notes {
+            background: var(--bg-2);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            font-size: 13px;
+            color: var(--text-2);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer .btn {
+            flex: none;
+            min-width: 100px;
+        }
+
+        /* Status Section */
+        .status-section {
+            margin-bottom: 0;
+        }
+
+        .status-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.running {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-dot.stopped {
+            background: var(--text-3);
+        }
+
+        .status-dot.starting {
+            background: var(--warning);
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-label {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .status-label.running { color: var(--success); }
+        .status-label.stopped { color: var(--text-3); }
+        .status-label.starting { color: var(--warning); }
+
+        .status-desc {
+            color: var(--text-2);
+            font-size: 13px;
+            margin-left: 18px;
+        }
+
+        /* Metrics Grid */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .metric {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            transition: all var(--transition);
+            position: relative;
+        }
+
+        .metric:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-3);
+        }
+
+        .metric:hover .copy-btn {
+            opacity: 1;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-family: 'Geist Mono', monospace;
+            font-size: 13px;
+            color: var(--text-1);
+        }
+
+        /* Copy button */
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-3);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            opacity: 0;
+        }
+
+        .copy-btn:hover {
+            background: var(--bg-3);
+            color: var(--text-1);
+        }
+
+        .copy-btn.copied {
+            color: var(--success);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-2);
+            color: var(--text-1);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--bg-3);
+            border-color: var(--border-hover);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-danger {
+            color: var(--error);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--error-subtle);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-icon {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Section Headers */
+        .section-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+        }
+
+        /* Providers Grid */
+        .providers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 0;
+        }
+
+        .provider {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: center;
+        }
+
+        .provider:hover {
+            background: var(--bg-3);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .provider:active {
+            transform: translateY(0);
+        }
+
+        .provider-icon {
+            width: 28px;
+            height: 28px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .provider-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--text-2);
+            transition: fill var(--transition);
+        }
+
+        .provider:hover .provider-icon svg {
+            fill: var(--text-1);
+        }
+
+        .provider.connected .provider-icon svg {
+            fill: var(--success);
+        }
+
+        /* Center content in provider cards */
+        .provider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .provider-name {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-2);
+        }
+
+        .provider.connected {
+            border-color: var(--success);
+            background: var(--success-subtle);
+        }
+
+        .provider.connected .provider-name {
+            color: var(--success);
+        }
+
+
+
+        /* Models List */
+        .models-list {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .models-hint {
+            font-size: 12px;
+            color: var(--text-3);
+            text-align: center;
+            padding: 8px;
+        }
+
+        .model-picker {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .model-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .model-picker-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-1);
+        }
+
+        .model-picker-subtitle {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .model-pill {
+            font-family: 'Geist Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            background: var(--accent-subtle);
+            border: 1px solid rgba(20, 184, 166, 0.4);
+            padding: 4px 8px;
+            border-radius: 999px;
+            max-width: 220px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .model-picker-controls {
+            margin-top: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .model-select-wrap {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+        }
+
+        .model-select,
+        .model-filter {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .model-select:focus,
+        .model-filter:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+        }
+
+        .model-picker-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .model-picker-actions .btn {
+            flex: none;
+            min-width: 140px;
+        }
+
+        .model-picker-hint {
+            font-size: 11px;
+            color: var(--text-3);
+        }
+
+        .model-item {
+            font-family: 'Geist Mono', monospace;
+            font-size: 12px;
+            color: var(--text-2);
+            padding: 4px 8px;
+            margin: 2px 0;
+            background: var(--bg-3);
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .model-item:hover {
+            color: var(--text-1);
+            background: var(--bg-hover);
+        }
+
+        /* API Test */
+        .api-test {
+            display: grid;
+            gap: 12px;
+        }
+
+        .api-test-info {
+            font-size: 13px;
+            color: var(--text-2);
+        }
+
+        .api-test-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .api-key-input {
+            flex: 1;
+            min-width: 220px;
+            padding: 8px 10px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: 12px;
+            outline: none;
+        }
+
+        .api-test-result {
+            font-family: 'Geist Mono', monospace;
+            font-size: 12px;
+            padding: 10px 12px;
+            background: var(--bg-2);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-3);
+        }
+
+        .api-test-result.success {
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        .api-test-result.error {
+            color: var(--error);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Playground */
+        .playground {
+            display: grid;
+            gap: 12px;
+        }
+
+        .playground-row {
+            display: grid;
+            gap: 8px;
+        }
+
+        .playground-label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .playground-input,
+        .playground-select,
+        .playground-textarea {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .playground-textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .playground-inline {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .playground-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .playground-output {
+            padding: 12px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: 'Geist Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            min-height: 120px;
+            color: var(--text-2);
+        }
+
+        .playground-hint {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        /* Activity Log */
+        .activity {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .activity-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-2);
+        }
+
+        .activity-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .activity-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-3);
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .activity-btn:hover {
+            background: var(--bg-3);
+            color: var(--text-2);
+        }
+
+        .activity-content {
+            padding: 12px 16px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-family: 'Geist Mono', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 12px;
+            padding: 4px 0;
+            color: var(--text-2);
+        }
+
+        .log-time {
+            color: var(--text-3);
+            flex-shrink: 0;
+        }
+
+        .log-msg.success { color: var(--success); }
+        .log-msg.warning { color: var(--warning); }
+        .log-msg.error { color: var(--error); }
+        .log-msg.info { color: var(--accent); }
+
+        /* Footer */
+        footer {
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer-links a {
+            font-size: 12px;
+            color: var(--text-3);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--text-2);
+        }
+
+        .footer-hint {
+            font-size: 11px;
+            color: var(--text-3);
+        }
+
+        .footer-hint kbd {
+            padding: 2px 6px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 10px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            font-size: 13px;
+            color: var(--text-1);
+            opacity: 0;
+            transition: all 200ms ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-icon {
+            font-size: 14px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-3);
+        }
+
+        /* Responsive */
+        @media (max-width: 520px) {
+            .metrics { grid-template-columns: 1fr; }
+            .providers { grid-template-columns: repeat(2, 1fr); }
+            .controls { flex-direction: column; }
+            .model-select-wrap { grid-template-columns: 1fr; }
+            .model-picker-actions { flex-direction: column; }
+            .api-test-actions { flex-direction: column; }
+            .playground-inline { grid-template-columns: 1fr; }
+            footer { flex-direction: column; gap: 12px; text-align: center; }
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 400ms ease forwards;
+        }
+
+        .delay-1 { animation-delay: 50ms; }
+        .delay-2 { animation-delay: 100ms; }
+        .delay-3 { animation-delay: 150ms; }
+        .delay-4 { animation-delay: 200ms; }
+
+        /* Auto-start toggle */
+        .auto-start {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .auto-start input[type="checkbox"] {
+            appearance: none;
+            width: 36px;
+            height: 20px;
+            background: var(--bg-3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            transition: all var(--transition);
+        }
+
+        .auto-start input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: var(--text-3);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all var(--transition);
+        }
+
+        .auto-start input[type="checkbox"]:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .auto-start input[type="checkbox"]:checked::before {
+            background: white;
+            left: 18px;
+        }
+
+        /* Settings Section */
+        .settings-section {
+            margin-bottom: 0;
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .settings-toggle:hover {
+            background: var(--bg-3);
+            border-color: var(--border-hover);
+        }
+
+        .settings-toggle-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-toggle-icon {
+            font-size: 14px;
+            color: var(--text-2);
+        }
+
+        .settings-toggle-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-2);
+        }
+
+        .settings-toggle-arrow {
+            color: var(--text-3);
+            font-size: 12px;
+            transition: transform var(--transition);
+        }
+
+        .settings-toggle.open .settings-toggle-arrow {
+            transform: rotate(180deg);
+        }
+
+        .settings-content {
+            display: none;
+            margin-top: 8px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .settings-content.open {
+            display: block;
+        }
+
+        .config-editor {
+            font-family: 'Geist Mono', monospace;
+            font-size: 12px;
+            background: var(--bg-1);
+            color: var(--text-1);
+            border: none;
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            resize: vertical;
+            outline: none;
+        }
+
+        .config-editor:focus {
+            background: var(--bg-0);
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .settings-actions .btn {
+            flex: none;
+            padding: 8px 16px;
+        }
+
+        .config-status {
+            flex: 1;
+            font-size: 12px;
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+        }
+
+        .config-status.success { color: var(--success); }
+        .config-status.error { color: var(--error); }
+
+        /* Model Manager */
+        .model-manager {
+            margin-bottom: 0;
+        }
+
+        .model-manager-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .model-manager-toggle:hover {
+            background: var(--bg-3);
+            border-color: var(--border-hover);
+        }
+
+        .model-manager-toggle.open .settings-toggle-arrow {
+            transform: rotate(180deg);
+        }
+
+        .model-manager-content {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .model-manager-content.open {
+            display: block;
+        }
+
+        .model-panel {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+        }
+
+        .model-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .model-panel-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-2);
+        }
+
+        .model-panel-count {
+            font-family: 'Geist Mono', monospace;
+            font-size: 11px;
+            color: var(--text-3);
+            background: var(--bg-3);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .model-search {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-1);
+            border: none;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-1);
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .model-search::placeholder {
+            color: var(--text-3);
+        }
+
+        .model-list-container {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .model-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition);
+        }
+
+        .model-row:last-child {
+            border-bottom: none;
+        }
+
+        .model-row:hover {
+            background: var(--bg-3);
+        }
+
+        .model-row input[type="checkbox"] {
+            margin-right: 10px;
+            accent-color: var(--accent);
+        }
+
+        .model-row-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .model-row-name {
+            font-family: 'Geist Mono', monospace;
+            font-size: 12px;
+            color: var(--text-1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .model-row-display {
+            font-size: 11px;
+            color: var(--text-3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .model-row-action {
+            margin-left: 8px;
+        }
+
+        .model-row-action .btn {
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+
+        .model-row.synced .model-row-name {
+            color: var(--success);
+        }
+
+        .model-row.synced .btn {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .model-panel-actions {
+            display: flex;
+            gap: 8px;
+            padding: 10px 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .model-panel-actions .btn {
+            padding: 6px 12px;
+            font-size: 11px;
+        }
+
+        .btn-success {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #3bc975;
+            border-color: #3bc975;
+        }
+
+        .model-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-3);
+            font-size: 12px;
+        }
+
+        /* Confirm Modal */
+        .confirm-modal .modal {
+            max-width: 360px;
+        }
+
+        .confirm-modal .modal-body {
+            text-align: center;
+            padding: 24px 20px;
+        }
+
+        .confirm-modal .modal-body p {
+            color: var(--text-2);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .confirm-modal .modal-body .warning {
+            color: var(--error);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <div class="container">
+        <header class="animate-in">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <span class="logo-text">CLIProxyAPI+</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <label class="auto-start">
+                    <input type="checkbox" id="autoStartToggle" onchange="toggleAutoStart()">
+                    <span>Auto-start</span>
+                </label>
+                <button class="update-btn" id="versionBadge" onclick="openUpdateModal()">Update</button>
+            </div>
+        </header>
+
+        <section class="status-section module animate-in delay-1">
+            <div class="status-main">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-label" id="statusLabel">Checking...</span>
+            </div>
+            <p class="status-desc" id="statusDesc">Connecting to server...</p>
+        </section>
+
+        <div class="metrics module animate-in delay-2">
+            <div class="metric">
+                <div class="metric-label">Endpoint</div>
+                <div class="metric-value" id="endpoint">localhost:8317</div>
+                <button class="copy-btn" id="copyEndpointBtn" onclick="copyEndpoint()" title="Copy endpoint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Process ID</div>
+                <div class="metric-value" id="pid">—</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Uptime</div>
+                <div class="metric-value" id="uptime">—</div>
+            </div>
+        </div>
+
+        <div class="controls module animate-in delay-2">
+            <button class="btn btn-primary" id="btnStart" onclick="startServer()">
+                <span class="btn-icon">▶</span> Start
+            </button>
+            <button class="btn btn-danger" id="btnStop" onclick="stopServer()">
+                <span class="btn-icon">■</span> Stop
+            </button>
+            <button class="btn" id="btnRestart" onclick="restartServer()">
+                <span class="btn-icon">↻</span> Restart
+            </button>
+        </div>
+
+        <section class="stats-section module animate-in delay-2" id="statsSection" style="display: none;">
+            <div class="section-header">Request Statistics</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value" id="statSuccess">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statLatency">0ms</div>
+                    <div class="stat-label">Avg Latency</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="statErrors">0</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="module animate-in delay-3">
+            <div class="section-header">Providers</div>
+            <div class="providers">
+                <div class="provider" id="provider-gemini" onclick="loginProvider('gemini')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 65 65" xmlns="http://www.w3.org/2000/svg"><path d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z"/></svg>
+                    </div>
+                    <div class="provider-name">Gemini</div>
+                </div>
+                <div class="provider" id="provider-copilot" onclick="loginProvider('copilot')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 256 208" xmlns="http://www.w3.org/2000/svg"><path d="M205.28,31.36C219.376,46.24 225.296,66.56 227.792,95.04C234.418,95.04 240.597,96.509 244.768,102.192L252.56,112.752C254.8,115.792 256,119.424 256,123.2V151.888C255.992,155.592 254.157,159.203 251.168,161.392C215.885,187.222 172.35,208 128,208C78.934,208 29.81,179.727 4.832,161.392C1.843,159.203 0.007,155.592 0,151.888V123.2C0,119.424 1.2,115.776 3.424,112.736L11.216,102.192C15.389,96.176 21.595,95.04 28.208,95.04C30.704,66.56 36.608,46.24 50.72,31.36C77.331,3.165 112.567,0.06 127.552,0.001L128,0C142.72,0 178.4,2.88 205.28,31.36ZM128.016,78.736C124.976,78.736 121.472,78.912 117.744,79.28C116.432,84.176 114.496,88.592 111.664,91.408C100.464,102.608 86.96,104.336 79.728,104.336C72.926,104.336 65.801,102.916 59.984,99.248C54.482,101.056 49.198,103.663 48.848,110.16C48.262,122.441 48.211,134.709 48.16,146.984C48.134,153.145 48.109,159.306 48.016,165.472C48.04,169.051 50.198,172.375 53.456,173.856C79.936,185.92 104.976,192 128.016,192C151.024,192 176.064,185.92 202.528,173.856C205.786,172.375 207.943,169.051 207.968,165.472C208.285,147.054 208.03,128.56 207.152,110.16L207.168,110.16C206.826,103.626 201.52,101.062 196,99.248C190.179,102.9 183.073,104.336 176.272,104.336C169.04,104.336 155.552,102.608 144.336,91.408C141.504,88.592 139.568,84.176 138.256,79.28C134.853,78.934 131.436,78.753 128.016,78.736ZM101.075,122.667C106.823,122.667 111.483,127.327 111.483,133.075V152.258C111.483,158.007 106.823,162.667 101.075,162.667C95.327,162.667 90.667,158.007 90.667,152.258V133.075C90.667,127.327 95.327,122.667 101.075,122.667ZM154.408,122.667C160.157,122.667 164.817,127.327 164.817,133.075V152.258C164.817,158.007 160.157,162.667 154.408,162.667C148.66,162.667 144,158.007 144,152.258V133.075C144,127.327 148.66,122.667 154.408,122.667Z"/></svg>
+                    </div>
+                    <div class="provider-name">Copilot</div>
+                </div>
+                <div class="provider" id="provider-antigravity" onclick="loginProvider('antigravity')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 434 400" xmlns="http://www.w3.org/2000/svg"><path d="M392.7 390.1c24.2 18.1 60.4 6 27.2-27.2C320.2 266.2 341.4.3 217.5.3S114.8 266.2 15.1 362.9c-36.3 36.3 3 45.3 27.2 27.2 93.6-70.2 140.5-105.3 175.2-105.3s81.6 35.1 175.2 105.3z"/></svg>
+                    </div>
+                    <div class="provider-name">Antigravity</div>
+                </div>
+                <div class="provider" id="provider-codex" onclick="loginProvider('codex')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg"><path d="m297.06 130.97c7.26-21.79 4.76-45.66-6.85-65.48-17.46-30.4-52.56-46.04-86.84-38.68-15.25-17.18-37.16-26.95-60.13-26.81-35.04-.08-66.13 22.48-76.94-55.86 22.51-4.61 41.94-18.7 53.31-38.67 17.57-30.32 13.55-68.51-9.94-94.51zm-120.28 168.11c-14.03.02-27.62-4.89-38.39-13.88.49-.26 1.34-.73 1.89-1.07l63.72-36.8c3.26-1.85 5.26-5.32 5.24-9.07v-89.83l26.93 15.55c.29.14.48.42.52.74v74.39c-.04 33.08-26.83 59.9-59.91 59.97zm-128.84-55.03c-7.03-12.14-9.56-26.37-7.15-40.18.47.28 1.3.79 1.89 1.13l63.72 36.8c3.23 1.89 7.23 1.89 10.47 0l77.79-44.92v31.1c.02.32-.13.63-.38.83l-64.41 37.19c-28.69 16.52-65.33 6.7-81.92-21.95zm-16.77-139.09c7-12.16 18.05-21.46 31.21-26.29 0 .55-.03 1.52-.03 2.2v73.61c.03 3.74 1.98 7.21 5.23 9.06l77.79 44.91-26.93 15.55c-.27.18-.61.21-.91.08l-64.42-37.22c-28.63-16.58-38.45-53.21-21.95-81.89zm221.26 51.49-77.79-44.92 26.93-15.54c.27-.18.61-.21.91-.08l64.42 37.19c28.68 16.57 38.51 53.26 21.94 81.94-7.01 12.14-18.05 21.44-31.2 26.28v-75.81c.03-3.74-1.96-7.2-5.2-9.06zm26.8-40.34c-.47-.29-1.3-.79-1.89-1.13l-63.72-36.8c-3.23-1.89-7.23-1.89-10.47 0l-77.79 44.92v-31.1c-.02-.32.13-.63.38-.83l64.41-37.16c28.69-16.55 65.37-6.7 81.91 22 6.99 12.12 9.52 26.31 7.15 40.1zm-168.51 55.43-26.94-15.55c-.29-.14-.48-.42-.52-.74v-74.39c.02-33.12 26.89-59.96 60.01-59.94 14.01 0 27.57 4.92 38.34 13.88-.49.26-1.33.73-1.89 1.07l-63.72 36.8c-3.26 1.85-5.26 5.31-5.24 9.06l-.04 89.79zm14.63-31.54 34.65-20.01 34.65 20v40.01l-34.65 20-34.65-20z"/></svg>
+                    </div>
+                    <div class="provider-name">Codex</div>
+                </div>
+                <div class="provider" id="provider-claude" onclick="loginProvider('claude')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><path d="M234 800l235-132 4-11-4-7h-11l-40-2-134-4-116-5-113-6-28-6-27-35 3-18 27-16 34 3 75 5 124 91 18 15 7-5 1-4-9-14-67-122-72-124-32-50-8-30c-3-13-5-24-5-37l37-50 21-7 49 7 21 19 31 70 50 111 77 151 23 45 12 41 5 12h8v-7l6-85 12-104 11-134 4-38 19-45 37-24 29 14 24 38-3 22-14 92-28 144-18 97h11l12-12 49-65 82-103 36-43 42-45 27-21h51l38 56-17 58-53 67-44 56-63 85-39 67 4 6 9-1 142-30 77-14 92-15 41 19 5 20-17 40-98 24-115 23-171 40-2 2 3 4 77 7 33 2h80l150 11 40 26 24 32-5 24-60 31-82-20-191-45-65-16h-9v7l54 53 99 90 125 116 7 29-17 22-17-3-110-82-43-38-97-78h-8v9l22 32 116 175 6 54-8 17-30 11-33-6-68-94-71-107-52-94-6 4-57 361-16 18-33 14-30-23-16-37 16-67 19-97 15-75 14-95 8-31v-3l-7 1-71 98-108 147-86 92-20 8-36-18 3-33 20-27 119-149 72-93 46-54v-8h-3l-315 205-56 7-24-22 3-33 12-13 95-65z"/></svg>
+                    </div>
+                    <div class="provider-name">Claude</div>
+                </div>
+                <div class="provider" id="provider-qwen" onclick="loginProvider('qwen')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg"><path d="M191.4,122.7c.6,0,.7.3.4.7l-10.1,17.7-31.5,55.4c0,.3-.3.3-.6.3s-.4,0-.6-.3l-41.7-72.7c-.3-.4,0-.6.3-.6h2.7l81.2-.3h-.1ZM115.5,25.9c-.3,0-.4,0-.6.3l-34.6,60.6c-.3.6-.9.9-1.6.9h-34.6c-.7,0-.9.3-.4.9l70.1,122.6c.3.4.1.7-.4.7h-33.7c-1,0-1.9.6-2.4,1.6l-15.9,27.9c-.6,1,0,1.5.9,1.5h69c.6,0,1,.3,1.2.9l16.9,29.7c.6,1,1,1,1.6,0l60.4-105.7,9.5-16.6c0-.3.3-.3.6-.3s.4,0,.6.3l17.2,30.6c.3.4.7.7,1.3.7l33.4-.3c.1,0,.3,0,.4-.3v-.4l-35-61.5c-.3-.4-.3-.9,0-1.3l3.6-6.1,13.5-23.9c.3-.4,0-.7-.4-.7H116.1c-.7,0-.9-.3-.4-.9l17.4-30.3c.3-.4.3-.9,0-1.3l-16.5-28.9c0-.3-.3-.4-.6-.4h-.4ZM156.9,21.2c4.8,8.3,9.5,16.6,14.1,25.1.4.7,1,1,1.9,1h67c2.1,0,3.9,1.3,5.3,4l17.5,31c2.2,4,3,5.8.3,10.1-3.1,5.2-6.2,10.4-9.2,15.7l-4.5,8c-1.3,2.4-2.7,3.4-.4,6.2l32.1,56c2.1,3.6,1.3,5.9-.4,9.4-5.3,9.5-10.7,18.9-16.2,28.2-1.9,3.3-4.3,4.5-8.2,4.5-9.4-.1-18.7,0-28.1.1-.4,0-.7.3-1,.6-10.8,19.2-21.7,38.2-32.7,57.2-2.1,3.6-4.6,4.5-8.8,4.5h-36.4c-2.5,0-4.3-1-5.6-3.3l-16.2-28.1c-.1-.4-.6-.6-1-.6h-61.8c-3.4.3-6.7,0-9.6-1l-19.3-33.4c-1.2-1.9-1.2-4.3,0-6.5l14.5-25.5c.4-.7.4-1.6,0-2.4-7.6-13.2-15.1-26.3-22.6-39.5l-9.5-16.8c-1.9-3.7-2.1-5.9,1.2-11.6,5.6-9.8,11.1-19.6,16.8-29.4,1.6-2.8,3.7-4,7-4h31.3c.6,0,1-.3,1.3-.7l33.8-59.1c1.2-1.9,2.8-3,5-3h19.2l12.3-.3c4.2,0,8.8.4,10.8,4.2v-.6Z"/></svg>
+                    </div>
+                    <div class="provider-name">Qwen</div>
+                </div>
+                <div class="provider" id="provider-iflow" onclick="loginProvider('iflow')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 3v6h8V3h-8zM3 21h8v-6H3v6zm0-8h8V3H3v10zm10 8h8v-10h-8v10z"/></svg>
+                    </div>
+                    <div class="provider-name">iFlow</div>
+                </div>
+                <div class="provider" id="provider-kiro" onclick="loginProvider('kiro')">
+                    <div class="provider-icon">
+                        <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><path d="M398.554 818.914C316.315 1001.03 491.477 1046.74 620.672 940.156C658.687 1059.66 801.052 970.473 852.234 877.795C964.787 673.567 919.318 465.357 907.64 422.374C827.637 129.443 427.623 128.946 358.8 423.865C342.651 475.544 342.402 534.18 333.458 595.051C328.986 625.86 325.507 645.488 313.83 677.785C306.873 696.424 297.68 712.819 282.773 740.645C259.915 783.881 269.604 867.113 387.87 823.883L399.051 818.914H398.554Z"/><ellipse cx="636" cy="487" rx="40" ry="63"/><ellipse cx="771" cy="487" rx="40" ry="63"/></svg>
+                    </div>
+                    <div class="provider-name">Kiro</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="module animate-in delay-4" id="modelsSection" style="display: none;">
+            <div class="section-header">Available Models</div>
+            <div class="model-picker" id="modelPicker">
+                <div class="model-picker-header">
+                    <div>
+                        <div class="model-picker-title">Model Picker</div>
+                        <div class="model-picker-subtitle">Choose a model and copy it for your client</div>
+                    </div>
+                    <div class="model-pill" id="selectedModelPill">No model selected</div>
+                </div>
+                <div class="model-picker-controls">
+                    <div class="model-select-wrap">
+                        <select class="model-select" id="modelSelect" onchange="setSelectedModel(this.value)">
+                            <option value="">Select a model</option>
+                        </select>
+                        <input class="model-filter" id="modelFilter" type="text" placeholder="Filter models..." oninput="filterModelSelect()">
+                    </div>
+                    <div class="model-picker-actions">
+                        <button class="btn btn-primary" id="btnCopyModel" onclick="copySelectedModel()" disabled>Copy Model ID</button>
+                        <button class="btn" id="btnCopySnippet" onclick="copyClientSnippet()" disabled>Copy Client Snippet</button>
+                    </div>
+                    <div class="model-picker-hint" id="modelPickerHint">Pick a model to generate a quick config snippet.</div>
+                </div>
+            </div>
+            <div class="models-list" id="modelsList">
+                <div class="models-hint">Start server to see available models</div>
+            </div>
+        </section>
+
+        <section class="model-manager module animate-in delay-4" id="modelManagerSection" style="display: none;">
+            <div class="model-manager-toggle" onclick="toggleModelManager()">
+                <div class="settings-toggle-left">
+                    <span class="settings-toggle-icon">🔧</span>
+                    <span class="settings-toggle-text">Factory Model Manager</span>
+                </div>
+                <span class="settings-toggle-arrow">▼</span>
+            </div>
+            <div class="model-manager-content" id="modelManagerContent">
+                <!-- Available Models Panel -->
+                <div class="model-panel">
+                    <div class="model-panel-header">
+                        <span class="model-panel-title">Available from CLIProxyAPI</span>
+                        <span class="model-panel-count" id="availableCount">0</span>
+                    </div>
+                    <input type="text" class="model-search" id="availableSearch" placeholder="Filter available models..." oninput="filterAvailableModels()">
+                    <div class="model-list-container" id="availableModelsList">
+                        <div class="model-empty">Start server to load models</div>
+                    </div>
+                    <div class="model-panel-actions">
+                        <button class="btn btn-success" onclick="addSelectedModels()" id="btnAddSelected" disabled>+ Add Selected (0)</button>
+                        <button class="btn btn-success" onclick="addAllMissingModels()" id="btnAddAllMissing" disabled>+ Add All Missing</button>
+                    </div>
+                </div>
+
+                <!-- Factory Config Panel -->
+                <div class="model-panel">
+                    <div class="model-panel-header">
+                        <span class="model-panel-title">Factory Config (~/.factory/config.json)</span>
+                        <span class="model-panel-count" id="factoryCount">0</span>
+                    </div>
+                    <input type="text" class="model-search" id="factorySearch" placeholder="Filter config models..." oninput="filterFactoryModels()">
+                    <div class="model-list-container" id="factoryModelsList">
+                        <div class="model-empty">No models in config</div>
+                    </div>
+                    <div class="model-panel-actions">
+                        <button class="btn btn-danger" onclick="removeSelectedModels()" id="btnRemoveSelected" disabled>Remove Selected (0)</button>
+                        <button class="btn btn-danger" onclick="confirmClearAll()">Clear All</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="module animate-in delay-4" id="apiTestSection">
+            <div class="section-header">API Health</div>
+            <div class="api-test">
+                <div class="api-test-info">
+                    Verify the proxy API is responding and authenticated.
+                </div>
+                <div class="api-test-actions">
+                    <input class="api-key-input" id="apiKeyInput" type="password" placeholder="API key (optional, default sk-dummy)">
+                    <button class="btn" onclick="testAPI()" id="btnTestAPI">Test API</button>
+                </div>
+                <div class="api-test-result" id="apiTestResult">Not tested yet.</div>
+            </div>
+        </section>
+
+        <section class="module animate-in delay-4" id="playgroundSection">
+            <div class="section-header">Playground</div>
+            <div class="playground">
+                <div class="playground-hint">
+                    Provider is inferred from the model ID. Use the model picker above or select a model below.
+                </div>
+                <div class="playground-row">
+                    <div class="playground-label">Model</div>
+                    <select class="playground-select" id="playgroundModelSelect" onchange="setPlaygroundModel(this.value)">
+                        <option value="">Select a model</option>
+                    </select>
+                </div>
+                <div class="playground-row">
+                    <div class="playground-label">System</div>
+                    <textarea class="playground-textarea" id="playgroundSystem" placeholder="Optional system prompt"></textarea>
+                </div>
+                <div class="playground-row">
+                    <div class="playground-label">User Prompt</div>
+                    <textarea class="playground-textarea" id="playgroundPrompt" placeholder="Type your prompt..."></textarea>
+                </div>
+                <div class="playground-inline">
+                    <div>
+                        <div class="playground-label">Temperature</div>
+                        <input class="playground-input" id="playgroundTemp" type="number" step="0.1" min="0" max="2" value="0.7">
+                    </div>
+                    <div>
+                        <div class="playground-label">Max Tokens</div>
+                        <input class="playground-input" id="playgroundMaxTokens" type="number" min="16" max="4096" value="512">
+                    </div>
+                </div>
+                <div class="playground-actions">
+                    <button class="btn btn-primary" onclick="runPlayground()" id="btnPlaygroundRun">Run Prompt</button>
+                    <button class="btn" onclick="useSelectedModel()">Use Selected Model</button>
+                    <button class="btn btn-danger" onclick="clearPlayground()">Clear</button>
+                </div>
+                <div class="playground-output" id="playgroundOutput">Ready.</div>
+            </div>
+        </section>
+
+        <section class="settings-section module animate-in delay-4">
+            <div class="settings-toggle" onclick="toggleSettings()">
+                <div class="settings-toggle-left">
+                    <span class="settings-toggle-icon">⚙</span>
+                    <span class="settings-toggle-text">Configuration</span>
+                </div>
+                <span class="settings-toggle-arrow">▼</span>
+            </div>
+            <div class="settings-content" id="settingsContent">
+                <textarea class="config-editor" id="configEditor" spellcheck="false" placeholder="Loading configuration..."></textarea>
+                <div class="settings-actions">
+                    <div class="config-status" id="configStatus"></div>
+                    <button class="btn" onclick="reloadConfig()">Reload</button>
+                    <button class="btn btn-primary" onclick="saveConfig()">Save & Restart</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="module animate-in delay-4">
+            <div class="section-header">Activity</div>
+            <div class="activity">
+                <div class="activity-header">
+                    <span class="activity-title">Recent events</span>
+                    <div class="activity-actions">
+                        <button class="activity-btn" onclick="clearLogs()">Clear</button>
+                        <button class="activity-btn" onclick="refreshStatus()">Refresh</button>
+                    </div>
+                </div>
+                <div class="activity-content" id="activityContent">
+                    <div class="log-entry">
+                        <span class="log-time">--:--:--</span>
+                        <span class="log-msg info">Initializing...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="animate-in delay-4">
+            <div class="footer-links">
+                <a href="https://github.com/julianromli/CLIProxyAPIPlus-Easy-Installation" target="_blank">GitHub</a>
+                <a href="https://github.com/router-for-me/CLIProxyAPIPlus" target="_blank">Upstream</a>
+            </div>
+            <div class="footer-hint">
+                Press <kbd>R</kbd> to refresh
+            </div>
+        </footer>
+    </div>
+
+    <div class="modal-overlay" id="updateModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Update Available</span>
+                <button class="modal-close" onclick="closeUpdateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="update-version">
+                    <span class="current" id="updateCurrentVersion">unknown</span>
+                    <span class="arrow">→</span>
+                    <span class="new" id="updateNewVersion">latest</span>
+                </div>
+                <div class="release-notes" id="updateReleaseNotes">Loading...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeUpdateModal()">Later</button>
+                <button class="btn btn-primary" id="btnApplyUpdate" onclick="applyUpdate()">Update Now</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span class="toast-icon">ℹ</span>
+        <span class="toast-msg"></span>
+    </div>
+
+    <div class="modal-overlay confirm-modal" id="confirmModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Confirm Action</span>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure?</p>
+                <p class="warning" id="confirmWarning"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn btn-danger" id="btnConfirm" onclick="executeConfirmedAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let serverStartTime = null;
+        let autoStartEnabled = localStorage.getItem('autoStart') === 'true';
+
+        function log(message, type = 'info') {
+            const content = document.getElementById('activityContent');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-msg ${type}">${message}</span>
+            `;
+            content.appendChild(entry);
+            content.scrollTop = content.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('activityContent').innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.querySelector('.toast-msg').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function updateUI(status) {
+            const dot = document.getElementById('statusDot');
+            const label = document.getElementById('statusLabel');
+            const desc = document.getElementById('statusDesc');
+            const pidEl = document.getElementById('pid');
+            const uptimeEl = document.getElementById('uptime');
+            const endpointEl = document.getElementById('endpoint');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+
+            const port = status.port || 8317;
+            if (endpointEl) {
+                endpointEl.textContent = `localhost:${port}`;
+            }
+
+            if (status.running) {
+                dot.className = 'status-dot running';
+                label.className = 'status-label running';
+                label.textContent = 'Running';
+                desc.textContent = `Server active on port ${port}`;
+                pidEl.textContent = status.pid || 'Active';
+                btnStart.disabled = true;
+                btnStop.disabled = false;
+
+                if (status.startTime) {
+                    const start = new Date(status.startTime);
+                    const secs = Math.floor((Date.now() - start.getTime()) / 1000);
+                    const h = Math.floor(secs / 3600);
+                    const m = Math.floor((secs % 3600) / 60);
+                    const s = secs % 60;
+                    uptimeEl.textContent = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+                } else {
+                    uptimeEl.textContent = '—';
+                }
+            } else {
+                dot.className = 'status-dot stopped';
+                label.className = 'status-label stopped';
+                label.textContent = 'Stopped';
+                desc.textContent = 'Server is not running';
+                pidEl.textContent = '—';
+                uptimeEl.textContent = '—';
+                btnStart.disabled = false;
+                btnStop.disabled = true;
+            }
+
+            renderModelPicker();
+        }
+
+        function setStarting() {
+            const dot = document.getElementById('statusDot');
+            const label = document.getElementById('statusLabel');
+            const desc = document.getElementById('statusDesc');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+            
+            dot.className = 'status-dot starting';
+            label.className = 'status-label starting';
+            label.textContent = 'Starting';
+            desc.textContent = 'Server is starting up...';
+            btnStart.disabled = true;
+            btnStop.disabled = true;
+        }
+
+        function setStopping() {
+            const dot = document.getElementById('statusDot');
+            const label = document.getElementById('statusLabel');
+            const desc = document.getElementById('statusDesc');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+            
+            dot.className = 'status-dot starting';
+            label.className = 'status-label starting';
+            label.textContent = 'Stopping';
+            desc.textContent = 'Server is shutting down...';
+            btnStart.disabled = true;
+            btnStop.disabled = true;
+        }
+
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/status', {
+                    signal: AbortSignal.timeout(2000)
+                });
+                if (res.ok) {
+                    const status = await res.json();
+                    updateUI(status);
+                    return status.running;
+                }
+            } catch (e) {
+                updateUI({ running: false });
+            }
+            return false;
+        }
+
+        function copyEndpoint() {
+            const endpoint = getEndpointBase();
+            navigator.clipboard.writeText(endpoint).then(() => {
+                const btn = document.getElementById('copyEndpointBtn');
+                if (!btn) return;
+                btn.classList.add('copied');
+                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                showToast('Endpoint copied to clipboard');
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                }, 2000);
+            });
+        }
+
+        function toggleAutoStart() {
+            const checkbox = document.getElementById('autoStartToggle');
+            autoStartEnabled = checkbox.checked;
+            localStorage.setItem('autoStart', autoStartEnabled);
+            log(autoStartEnabled ? 'Auto-start enabled' : 'Auto-start disabled', 'info');
+        }
+
+        function toggleSettings() {
+            const toggle = document.querySelector('.settings-toggle');
+            const content = document.getElementById('settingsContent');
+            toggle.classList.toggle('open');
+            content.classList.toggle('open');
+            
+            if (content.classList.contains('open')) {
+                loadConfig();
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('configEditor').value = data.content || '';
+                    setConfigStatus('', '');
+                } else {
+                    setConfigStatus('Failed to load config', 'error');
+                }
+            } catch (e) {
+                setConfigStatus('Error: ' + e.message, 'error');
+            }
+        }
+
+        function reloadConfig() {
+            loadConfig();
+            log('Config reloaded', 'info');
+        }
+
+        async function saveConfig() {
+            const content = document.getElementById('configEditor').value;
+            setConfigStatus('Saving...', '');
+            
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    setConfigStatus('Saved!', 'success');
+                    log('Config saved', 'success');
+                    
+                    // Restart if server was running
+                    const status = await checkStatus();
+                    if (status) {
+                        log('Restarting server...', 'info');
+                        await restartServer();
+                    }
+                } else {
+                    setConfigStatus('Error: ' + data.error, 'error');
+                    log('Config save failed: ' + data.error, 'error');
+                }
+            } catch (e) {
+                setConfigStatus('Error: ' + e.message, 'error');
+            }
+        }
+
+        function setConfigStatus(msg, type) {
+            const el = document.getElementById('configStatus');
+            el.textContent = msg;
+            el.className = 'config-status ' + type;
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const res = await fetch('/api/auth-status');
+                if (res.ok) {
+                    const authStatus = await res.json();
+                    const providers = ['gemini', 'copilot', 'antigravity', 'codex', 'claude', 'qwen', 'iflow', 'kiro'];
+                    providers.forEach(provider => {
+                        const el = document.getElementById(`provider-${provider}`);
+                        if (el) {
+                            if (authStatus[provider]) {
+                                el.classList.add('connected');
+                            } else {
+                                el.classList.remove('connected');
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to check auth status:', e);
+            }
+        }
+
+        async function loadModels() {
+            const section = document.getElementById('modelsSection');
+            const list = document.getElementById('modelsList');
+            const managerSection = document.getElementById('modelManagerSection');
+            
+            try {
+                const res = await fetch('/api/models');
+                if (res.ok) {
+                    const data = await res.json();
+                    availableModels = data.models || [];
+                    if (data.success && data.models && data.models.length > 0) {
+                        section.style.display = 'block';
+                        managerSection.style.display = 'block';
+                        list.innerHTML = data.models.map(m => 
+                            `<span class="model-item">${m}</span>`
+                        ).join('');
+                    } else {
+                        section.style.display = 'none';
+                    }
+                    renderModelPicker();
+                } else {
+                    section.style.display = 'none';
+                    availableModels = [];
+                    renderModelPicker();
+                }
+            } catch (e) {
+                section.style.display = 'none';
+                availableModels = [];
+                renderModelPicker();
+            }
+        }
+
+        function renderModelPicker() {
+            const picker = document.getElementById('modelPicker');
+            const select = document.getElementById('modelSelect');
+            const hint = document.getElementById('modelPickerHint');
+
+            if (!picker || !select) {
+                return;
+            }
+
+            if (!availableModels || availableModels.length === 0) {
+                picker.style.display = 'none';
+                return;
+            }
+
+            picker.style.display = 'block';
+            const filter = modelFilterText.toLowerCase();
+            const models = availableModels.filter((m) => m.toLowerCase().includes(filter));
+
+            select.innerHTML = '<option value=\"\">Select a model</option>' +
+                models.map((m) => `<option value=\"${m}\">${m}</option>`).join('');
+
+            if (selectedModel && models.includes(selectedModel)) {
+                select.value = selectedModel;
+            } else {
+                select.value = '';
+            }
+
+            updateSelectedModelUI();
+            renderPlaygroundModels();
+
+            if (hint) {
+                if (models.length === 0) {
+                    hint.textContent = 'No models match the filter.';
+                } else if (selectedModel) {
+                    hint.textContent = `Base URL: ${getEndpointBase()}`;
+                } else {
+                    hint.textContent = `Showing ${models.length} model(s).`;
+                }
+            }
+        }
+
+        function updateSelectedModelUI() {
+            const pill = document.getElementById('selectedModelPill');
+            const btnCopyModel = document.getElementById('btnCopyModel');
+            const btnCopySnippet = document.getElementById('btnCopySnippet');
+
+            if (pill) {
+                pill.textContent = selectedModel || 'No model selected';
+            }
+
+            const hasSelection = !!selectedModel;
+            if (btnCopyModel) btnCopyModel.disabled = !hasSelection;
+            if (btnCopySnippet) btnCopySnippet.disabled = !hasSelection;
+        }
+
+        function setSelectedModel(modelId) {
+            selectedModel = modelId || '';
+            localStorage.setItem('selectedModel', selectedModel);
+            updateSelectedModelUI();
+            if (selectedModel) {
+                setPlaygroundModel(selectedModel);
+                renderPlaygroundModels();
+            }
+        }
+
+        function filterModelSelect() {
+            const input = document.getElementById('modelFilter');
+            modelFilterText = input ? input.value : '';
+            renderModelPicker();
+        }
+
+        function getEndpointBase() {
+            const endpointText = (document.getElementById('endpoint')?.textContent || 'localhost:8317').trim();
+            if (endpointText.startsWith('http://') || endpointText.startsWith('https://')) {
+                if (endpointText.includes('/v1')) {
+                    return endpointText.replace(/\/+$/, '');
+                }
+                return endpointText.replace(/\/+$/, '') + '/v1';
+            }
+            return `http://${endpointText.replace(/\/+$/, '')}/v1`;
+        }
+
+        function copySelectedModel() {
+            if (!selectedModel) return;
+            navigator.clipboard.writeText(selectedModel).then(() => {
+                showToast('Model ID copied');
+                log(`Copied model: ${selectedModel}`, 'success');
+            });
+        }
+
+        function copyClientSnippet() {
+            if (!selectedModel) return;
+            const snippet = JSON.stringify({
+                model: selectedModel,
+                apiKey: 'sk-dummy',
+                baseUrl: getEndpointBase()
+            }, null, 2);
+            navigator.clipboard.writeText(snippet).then(() => {
+                showToast('Client snippet copied');
+                log('Copied client snippet', 'success');
+            });
+        }
+
+        function renderPlaygroundModels() {
+            const select = document.getElementById('playgroundModelSelect');
+            if (!select) return;
+
+            if (!availableModels || availableModels.length === 0) {
+                select.innerHTML = '<option value="">Start server to load models</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Select a model</option>' +
+                availableModels.map((m) => `<option value="${m}">${m}</option>`).join('');
+
+            if (playgroundModel && availableModels.includes(playgroundModel)) {
+                select.value = playgroundModel;
+            } else if (selectedModel && availableModels.includes(selectedModel)) {
+                select.value = selectedModel;
+                playgroundModel = selectedModel;
+            } else {
+                playgroundModel = '';
+            }
+        }
+
+        function setPlaygroundModel(modelId) {
+            playgroundModel = modelId || '';
+            localStorage.setItem('playgroundModel', playgroundModel);
+        }
+
+        function useSelectedModel() {
+            if (!selectedModel) {
+                showToast('No model selected');
+                return;
+            }
+            setPlaygroundModel(selectedModel);
+            renderPlaygroundModels();
+        }
+
+        function clearPlayground() {
+            document.getElementById('playgroundSystem').value = '';
+            document.getElementById('playgroundPrompt').value = '';
+            document.getElementById('playgroundOutput').textContent = 'Ready.';
+        }
+
+        async function testAPI() {
+            const btn = document.getElementById('btnTestAPI');
+            const output = document.getElementById('apiTestResult');
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+            btn.disabled = true;
+            output.textContent = 'Testing...';
+            output.className = 'api-test-result';
+
+            try {
+                const res = await fetch('/api/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    output.textContent = `OK - ${data.message}`;
+                    output.classList.add('success');
+                    log('API test successful', 'success');
+                } else {
+                    output.textContent = `Failed - ${data.error || 'Unknown error'}`;
+                    output.classList.add('error');
+                    log('API test failed', 'error');
+                }
+            } catch (e) {
+                output.textContent = `Error - ${e.message}`;
+                output.classList.add('error');
+                log('API test error', 'error');
+            }
+
+            btn.disabled = false;
+        }
+
+        async function runPlayground() {
+            const output = document.getElementById('playgroundOutput');
+            const btn = document.getElementById('btnPlaygroundRun');
+            const model = document.getElementById('playgroundModelSelect').value;
+            const system = document.getElementById('playgroundSystem').value.trim();
+            const prompt = document.getElementById('playgroundPrompt').value.trim();
+            const temperature = parseFloat(document.getElementById('playgroundTemp').value) || 0.7;
+            const maxTokens = parseInt(document.getElementById('playgroundMaxTokens').value, 10) || 512;
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+            if (!model) {
+                showToast('Select a model first');
+                return;
+            }
+            if (!prompt) {
+                showToast('Prompt is empty');
+                return;
+            }
+
+            btn.disabled = true;
+            output.textContent = 'Running...';
+
+            try {
+                const res = await fetch('/api/playground', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model,
+                        system,
+                        prompt,
+                        temperature,
+                        maxTokens,
+                        apiKey
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    output.textContent = data.response || '(empty response)';
+                    log('Playground request completed', 'success');
+                } else {
+                    output.textContent = `Error: ${data.error || 'Unknown error'}`;
+                    log('Playground request failed', 'error');
+                }
+            } catch (e) {
+                output.textContent = `Error: ${e.message}`;
+                log('Playground request error', 'error');
+            }
+
+            btn.disabled = false;
+        }
+
+        async function refreshStatus() {
+            log('Checking status...', 'info');
+            const running = await checkStatus();
+            await checkAuthStatus();
+            if (running) {
+                await loadModels();
+                await loadStats();
+            } else {
+                document.getElementById('modelsSection').style.display = 'none';
+                document.getElementById('statsSection').style.display = 'none';
+            }
+            updateModelManagerVisibility(running);
+            log(running ? 'Server is running' : 'Server is offline', running ? 'success' : 'warning');
+        }
+
+        async function startServer() {
+            log('Starting server...', 'info');
+            setStarting();
+            
+            try {
+                const res = await fetch('/api/start', { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    log(`Server started (PID: ${data.pid})`, 'success');
+                    showToast('Server started successfully');
+                    setTimeout(checkStatus, 500);
+                    setTimeout(loadModels, 1500);
+                } else {
+                    log(`Failed: ${data.error}`, 'error');
+                    showToast(data.error);
+                    checkStatus();
+                }
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+                checkStatus();
+            }
+        }
+
+        async function stopServer() {
+            log('Stopping server...', 'warning');
+            setStopping();
+            
+            try {
+                const res = await fetch('/api/stop', { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    log('Server stopped', 'success');
+                    showToast('Server stopped');
+                    setTimeout(checkStatus, 300);
+                } else {
+                    log(`Failed: ${data.error}`, 'error');
+                    showToast(data.error);
+                    checkStatus();
+                }
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+                checkStatus();
+            }
+        }
+
+        async function restartServer() {
+            log('Restarting server...', 'info');
+            setStarting();
+            
+            try {
+                const res = await fetch('/api/restart', { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    log(`Server restarted (PID: ${data.pid})`, 'success');
+                    showToast('Server restarted');
+                    setTimeout(checkStatus, 500);
+                } else {
+                    log(`Failed: ${data.error}`, 'error');
+                    showToast(data.error);
+                    checkStatus();
+                }
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+                checkStatus();
+            }
+        }
+
+        async function loginProvider(name) {
+            log(`Logging in to ${name}...`, 'info');
+            
+            try {
+                const res = await fetch(`/api/oauth/${name}`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    log(`OAuth login started for ${name}`, 'success');
+                    showToast(`Opening ${name} login...`);
+                } else {
+                    log(`Failed: ${data.error}`, 'error');
+                    showToast(data.error);
+                }
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+            }
+        }
+
+        // Stats functions
+        let updateInfo = null;
+
+        async function loadStats() {
+            const section = document.getElementById('statsSection');
+            try {
+                const res = await fetch('/api/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    // Show stats section when server is running (stats always returned)
+                    
+                    // Only show stats if available
+                    if (data.available === false) {
+                        section.style.display = 'none';
+                    } else {
+                        section.style.display = 'block';
+                        document.getElementById('statTotal').textContent = data.total || 0;
+                        document.getElementById('statSuccess').textContent = (data.successRate || 0) + '%';
+                        document.getElementById('statLatency').textContent = Math.round(data.avgLatency || 0) + 'ms';
+                        document.getElementById('statErrors').textContent = data.errors || 0;
+                    }
+                } else {
+                    section.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+                section.style.display = 'none';
+            }
+        }
+
+        // Update functions
+        async function checkForUpdate() {
+            try {
+                const res = await fetch('/api/update/check');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.hasUpdate) {
+                        updateInfo = data;
+                        const badge = document.getElementById('versionBadge');
+                        badge.classList.add('update-available');
+                        badge.title = `Update available: ${data.latestCommit}`;
+                        log(`Update available: ${data.latestCommit} - ${data.latestCommitMessage}`, 'info');
+                    }
+                    return data;
+                }
+            } catch (e) {
+                console.error('Failed to check for updates:', e);
+            }
+            return null;
+        }
+
+        async function openUpdateModal() {
+            const modal = document.getElementById('updateModal');
+            const notesEl = document.getElementById('updateReleaseNotes');
+            const newVersionEl = document.getElementById('updateNewVersion');
+            const currentVersionEl = document.getElementById('updateCurrentVersion');
+            
+            notesEl.textContent = 'Checking for updates...';
+            modal.classList.add('show');
+            
+            const data = await checkForUpdate();
+            
+            if (data && data.hasUpdate) {
+                currentVersionEl.textContent = data.currentCommit || 'unknown';
+                newVersionEl.textContent = data.latestCommit;
+                notesEl.textContent = data.latestCommitMessage || 'New updates available from main branch';
+                document.getElementById('btnApplyUpdate').disabled = false;
+            } else if (data && data.error) {
+                currentVersionEl.textContent = data.currentCommit || 'unknown';
+                newVersionEl.textContent = '---';
+                notesEl.textContent = `Error: ${data.error}`;
+                document.getElementById('btnApplyUpdate').disabled = true;
+            } else {
+                currentVersionEl.textContent = data?.currentCommit || 'unknown';
+                newVersionEl.textContent = data?.latestCommit || 'latest';
+                notesEl.textContent = 'You are running the latest version!';
+                document.getElementById('btnApplyUpdate').disabled = true;
+            }
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('updateModal').classList.remove('show');
+        }
+
+        async function applyUpdate() {
+            if (!updateInfo || !updateInfo.hasUpdate) return;
+            
+            const btn = document.getElementById('btnApplyUpdate');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+            log('Applying update...', 'info');
+            
+            try {
+                const res = await fetch('/api/update/apply', { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    log(`Update applied: ${data.newCommit} - ${data.commitMessage}`, 'success');
+                    showToast('Update applied! Please restart the GUI.');
+                    closeUpdateModal();
+                    document.getElementById('versionBadge').classList.remove('update-available');
+                } else {
+                    log(`Update failed: ${data.error}`, 'error');
+                    showToast(data.error);
+                }
+            } catch (e) {
+                log(`Update error: ${e.message}`, 'error');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Update Now';
+        }
+
+        // ============================================
+        // Model Manager Functions
+        // ============================================
+        
+        let availableModels = [];
+        let factoryModels = [];
+        let selectedAvailable = new Set();
+        let selectedFactory = new Set();
+        let pendingConfirmAction = null;
+        let selectedModel = localStorage.getItem('selectedModel') || '';
+        let modelFilterText = '';
+        let playgroundModel = localStorage.getItem('playgroundModel') || '';
+
+        function generateDisplayName(modelId) {
+            const prefixMap = {
+                'gemini-claude': 'Antigravity',
+                'kiro-claude': 'Kiro',
+                'kiro-': 'Kiro'
+            };
+            
+            let provider = '';
+            let name = modelId;
+            
+            for (const [prefix, prov] of Object.entries(prefixMap)) {
+                if (modelId.startsWith(prefix)) {
+                    provider = prov;
+                    name = modelId.replace(prefix, '').replace(/^-/, '');
+                    break;
+                }
+            }
+            
+            const formatted = name
+                .split(/[-_]/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ')
+                .replace(/(\d+)\.(\d+)/g, '$1.$2')
+                .replace(/(\d+) (\d+)/g, '$1.$2');
+            
+            return provider ? `${formatted} [${provider}]` : formatted;
+        }
+
+        function toggleModelManager() {
+            const toggle = document.querySelector('.model-manager-toggle');
+            const content = document.getElementById('modelManagerContent');
+            toggle.classList.toggle('open');
+            content.classList.toggle('open');
+            
+            if (content.classList.contains('open')) {
+                loadModelManager();
+            }
+        }
+
+        async function loadModelManager() {
+            await Promise.all([loadAvailableForManager(), loadFactoryConfig()]);
+            renderAvailableModels();
+            renderFactoryModels();
+        }
+
+        async function loadAvailableForManager() {
+            try {
+                const res = await fetch('/api/models');
+                if (res.ok) {
+                    const data = await res.json();
+                    availableModels = data.models || [];
+                    renderModelPicker();
+                }
+            } catch (e) {
+                console.error('Failed to load available models:', e);
+                availableModels = [];
+                renderModelPicker();
+            }
+        }
+
+        async function loadFactoryConfig() {
+            try {
+                const res = await fetch('/api/factory-config');
+                if (res.ok) {
+                    const data = await res.json();
+                    factoryModels = data.models || [];
+                }
+            } catch (e) {
+                console.error('Failed to load factory config:', e);
+                factoryModels = [];
+            }
+        }
+
+        function renderAvailableModels() {
+            const container = document.getElementById('availableModelsList');
+            const countEl = document.getElementById('availableCount');
+            const filter = document.getElementById('availableSearch').value.toLowerCase();
+            const factoryModelIds = new Set(factoryModels.map(m => m.model));
+            
+            const filtered = availableModels.filter(m => m.toLowerCase().includes(filter));
+            countEl.textContent = filtered.length;
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="model-empty">No models found</div>';
+                return;
+            }
+            
+            let missingCount = 0;
+            container.innerHTML = filtered.map(modelId => {
+                const isSynced = factoryModelIds.has(modelId);
+                const isSelected = selectedAvailable.has(modelId);
+                if (!isSynced) missingCount++;
+                
+                return `
+                    <div class="model-row ${isSynced ? 'synced' : ''}" data-model="${modelId}">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} ${isSynced ? 'disabled' : ''} onchange="toggleAvailableSelection('${modelId}')">
+                        <div class="model-row-info">
+                            <div class="model-row-name">${modelId}</div>
+                            <div class="model-row-display">${isSynced ? '✓ Already in config' : generateDisplayName(modelId)}</div>
+                        </div>
+                        <div class="model-row-action">
+                            <button class="btn btn-success" onclick="addSingleModel('${modelId}')" ${isSynced ? 'disabled' : ''}>
+                                ${isSynced ? '✓' : '+ Add'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            updateAvailableButtons(missingCount);
+        }
+
+        function renderFactoryModels() {
+            const container = document.getElementById('factoryModelsList');
+            const countEl = document.getElementById('factoryCount');
+            const filter = document.getElementById('factorySearch').value.toLowerCase();
+            
+            const filtered = factoryModels.filter(m => 
+                m.model.toLowerCase().includes(filter) || 
+                (m.display_name && m.display_name.toLowerCase().includes(filter))
+            );
+            countEl.textContent = filtered.length;
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="model-empty">No models in config</div>';
+                updateFactoryButtons();
+                return;
+            }
+            
+            container.innerHTML = filtered.map(m => {
+                const isSelected = selectedFactory.has(m.model);
+                return `
+                    <div class="model-row" data-model="${m.model}">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleFactorySelection('${m.model}')">
+                        <div class="model-row-info">
+                            <div class="model-row-name">${m.model}</div>
+                            <div class="model-row-display">${m.display_name || m.model}</div>
+                        </div>
+                        <div class="model-row-action">
+                            <button class="btn btn-danger" onclick="removeSingleModel('${m.model}')">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            updateFactoryButtons();
+        }
+
+        function toggleAvailableSelection(modelId) {
+            if (selectedAvailable.has(modelId)) {
+                selectedAvailable.delete(modelId);
+            } else {
+                selectedAvailable.add(modelId);
+            }
+            updateAvailableButtons();
+        }
+
+        function toggleFactorySelection(modelId) {
+            if (selectedFactory.has(modelId)) {
+                selectedFactory.delete(modelId);
+            } else {
+                selectedFactory.add(modelId);
+            }
+            updateFactoryButtons();
+        }
+
+        function updateAvailableButtons(missingCount) {
+            const btn = document.getElementById('btnAddSelected');
+            const btnAll = document.getElementById('btnAddAllMissing');
+            const count = selectedAvailable.size;
+            
+            btn.textContent = `+ Add Selected (${count})`;
+            btn.disabled = count === 0;
+            
+            if (missingCount !== undefined) {
+                btnAll.textContent = `+ Add All Missing (${missingCount})`;
+                btnAll.disabled = missingCount === 0;
+            }
+        }
+
+        function updateFactoryButtons() {
+            const btn = document.getElementById('btnRemoveSelected');
+            const count = selectedFactory.size;
+            btn.textContent = `Remove Selected (${count})`;
+            btn.disabled = count === 0;
+        }
+
+        function filterAvailableModels() {
+            renderAvailableModels();
+        }
+
+        function filterFactoryModels() {
+            renderFactoryModels();
+        }
+
+        async function addSingleModel(modelId) {
+            const displayName = generateDisplayName(modelId);
+            await addModelsToFactory([modelId], { [modelId]: displayName });
+        }
+
+        async function addSelectedModels() {
+            if (selectedAvailable.size === 0) return;
+            
+            const displayNames = {};
+            selectedAvailable.forEach(modelId => {
+                displayNames[modelId] = generateDisplayName(modelId);
+            });
+            
+            await addModelsToFactory([...selectedAvailable], displayNames);
+            selectedAvailable.clear();
+        }
+
+        async function addAllMissingModels() {
+            const factoryModelIds = new Set(factoryModels.map(m => m.model));
+            const missing = availableModels.filter(m => !factoryModelIds.has(m));
+            
+            if (missing.length === 0) return;
+            
+            const displayNames = {};
+            missing.forEach(modelId => {
+                displayNames[modelId] = generateDisplayName(modelId);
+            });
+            
+            await addModelsToFactory(missing, displayNames);
+        }
+
+        async function addModelsToFactory(models, displayNames) {
+            try {
+                const res = await fetch('/api/factory-config/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ models, displayNames })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const count = data.added?.length || 0;
+                    log(`Added ${count} model(s) to Factory config`, 'success');
+                    showToast(`Added ${count} model(s) to config`);
+                    await loadModelManager();
+                } else {
+                    log(`Failed to add models: ${data.error}`, 'error');
+                    showToast(data.error);
+                }
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+            }
+        }
+
+        async function removeSingleModel(modelId) {
+            await removeModelsFromFactory([modelId]);
+        }
+
+        async function removeSelectedModels() {
+            if (selectedFactory.size === 0) return;
+            await removeModelsFromFactory([...selectedFactory]);
+            selectedFactory.clear();
+        }
+
+        async function removeModelsFromFactory(models, all = false) {
+            try {
+                const res = await fetch('/api/factory-config/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(all ? { all: true } : { models })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const count = data.removed?.length || 0;
+                    log(`Removed ${count} model(s) from Factory config`, 'success');
+                    showToast(`Removed ${count} model(s) from config`);
+                    await loadModelManager();
+                } else {
+                    log(`Failed to remove models: ${data.error}`, 'error');
+                    showToast(data.error);
+                }
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+            }
+        }
+
+        function confirmClearAll() {
+            if (factoryModels.length === 0) {
+                showToast('No models to clear');
+                return;
+            }
+            
+            document.getElementById('confirmMessage').textContent = 
+                `Remove all ${factoryModels.length} models from Factory config?`;
+            document.getElementById('confirmWarning').textContent = 
+                'This action cannot be undone.';
+            pendingConfirmAction = () => removeModelsFromFactory([], true);
+            document.getElementById('confirmModal').classList.add('show');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('show');
+            pendingConfirmAction = null;
+        }
+
+        function executeConfirmedAction() {
+            if (pendingConfirmAction) {
+                pendingConfirmAction();
+            }
+            closeConfirmModal();
+        }
+
+        // Show model manager section when server is running
+        async function updateModelManagerVisibility(running) {
+            const section = document.getElementById('modelManagerSection');
+            section.style.display = running ? 'block' : 'none';
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                refreshStatus();
+            }
+            if (e.key === 'Escape') {
+                closeUpdateModal();
+                closeConfirmModal();
+            }
+        });
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set auto-start checkbox
+            document.getElementById('autoStartToggle').checked = autoStartEnabled;
+            
+            log('Control Center ready', 'success');
+            const running = await checkStatus();
+            await checkAuthStatus();
+            
+            // Auto-start if enabled and server not running
+            if (autoStartEnabled && !running) {
+                log('Auto-starting server...', 'info');
+                await startServer();
+            }
+            
+            // Load stats and show model manager if server is running
+            if (running) {
+                await loadStats();
+                await loadModels();
+            } else {
+                renderModelPicker();
+            }
+            updateModelManagerVisibility(running);
+            renderPlaygroundModels();
+            
+            // Check for updates on load
+            await checkForUpdate();
+            
+            setInterval(checkStatus, 5000);
+            setInterval(checkAuthStatus, 10000);
+            setInterval(loadStats, 10000); // Refresh stats every 10s
+        });
+    </script>
+</body>
+</html>

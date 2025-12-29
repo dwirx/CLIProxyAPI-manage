@@ -47,6 +47,44 @@ export type PlaygroundResponse = {
   error?: string;
 };
 
+export type OAuthSession = {
+  success: boolean;
+  sessionId: string;
+  provider: string;
+  running: boolean;
+  output: string;
+  error?: string;
+};
+
+export type AnalyticsSummary = {
+  success: boolean;
+  totals: {
+    requests: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    avgLatencyMs: number;
+    successRate: number;
+  };
+  perDay: Array<{ date: string; requests: number; tokens: number }>;
+  topModels: Array<{ model: string; provider: string; requests: number; tokens: number }>;
+  error?: string;
+};
+
+export type AnalyticsRecent = {
+  success: boolean;
+  entries: Array<{
+    timestamp: string;
+    model: string;
+    provider: string;
+    totalTokens: number;
+    latencyMs: number;
+    success: boolean;
+    error?: string;
+  }>;
+  error?: string;
+};
+
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 async function getJson<T>(url: string): Promise<T> {
@@ -60,6 +98,11 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
     headers: jsonHeaders,
     body: JSON.stringify(body)
   });
+  return res.json();
+}
+
+async function deleteJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { method: 'DELETE' });
   return res.json();
 }
 
@@ -86,6 +129,14 @@ export const api = {
       all
     }),
   testApi: (apiKey: string) => postJson<ApiTestResponse>('/api/test', { apiKey }),
+  analyticsSummary: () => getJson<AnalyticsSummary>('/api/analytics/summary'),
+  analyticsRecent: () => getJson<AnalyticsRecent>('/api/analytics/recent'),
+  oauthStart: (provider: string) => postJson<OAuthSession>(`/api/oauth/${provider}`, {}),
+  oauthStatus: (sessionId: string) => getJson<OAuthSession>(`/api/oauth/session/${sessionId}`),
+  oauthInput: (sessionId: string, input: string) =>
+    postJson<{ success: boolean; error?: string }>(`/api/oauth/session/${sessionId}`, { input }),
+  oauthStop: (sessionId: string) =>
+    deleteJson<{ success: boolean; error?: string }>(`/api/oauth/session/${sessionId}`),
   playground: (payload: {
     model: string;
     system: string;

@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"time"
@@ -64,6 +63,7 @@ func guiMux() http.Handler {
 	mux.HandleFunc("/api/stop", handleStop)
 	mux.HandleFunc("/api/restart", handleRestart)
 	mux.HandleFunc("/api/oauth/", handleOAuth)
+	mux.HandleFunc("/api/oauth/session/", handleOAuthSession)
 	mux.HandleFunc("/api/stats", handleStats)
 	mux.HandleFunc("/api/test", handleTestAPI)
 	mux.HandleFunc("/api/playground", handlePlayground)
@@ -200,28 +200,6 @@ func handleRestart(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "pid": pid})
 }
 
-func handleOAuth(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-		return
-	}
-	provider := strings.TrimPrefix(r.URL.Path, "/api/oauth/")
-	flag := oauthFlag(provider)
-	if flag == "" {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": "unknown provider"})
-		return
-	}
-	cmd := exec.Command(binaryPath(), "--config", configPath(), flag)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Start(); err != nil {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": err.Error()})
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
-}
-
 func oauthFlag(provider string) string {
 	switch strings.ToLower(provider) {
 	case "gemini":
@@ -255,6 +233,55 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+}
+
+func handleAnalyticsSummary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	summary := getAnalyticsSummary()
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func handleAnalyticsRecent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	result := getAnalyticsRecent(30)
+	writeJSON(w, http.StatusOK, result)
+}
+
+func handlePricing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	url := "https://www.llm-prices.com/current-v1.json"
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+	req.Header.Set("User-Agent", "betaCLIProxyAPI")
+	resp, err := client.Do(req)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		writeJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("pricing HTTP %s", resp.Status),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = io.Copy(w, resp.Body)
 }
 
 func handleTestAPI(w http.ResponseWriter, r *http.Request) {
@@ -363,6 +390,11 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 	}
 	messages = append(messages, message{Role: "user", Content: payload.Prompt})
 
+	promptTokens := 0
+	for _, msg := range messages {
+		promptTokens += estimateTokens(msg.Content)
+	}
+
 	reqBody := map[string]interface{}{
 		"model":    payload.Model,
 		"messages": messages,
@@ -375,10 +407,23 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
+	startedAt := time.Now()
 	port := resolvePortFromConfig(configPath(), 8317)
 	url := fmt.Sprintf("http://localhost:%d/v1/chat/completions", port)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
+		logRequest(RequestLog{
+			Timestamp:        time.Now(),
+			Source:           "playground",
+			Model:            payload.Model,
+			Provider:         inferProvider(payload.Model),
+			PromptTokens:     promptTokens,
+			CompletionTokens: 0,
+			TotalTokens:      promptTokens,
+			LatencyMs:        time.Since(startedAt).Milliseconds(),
+			Success:          false,
+			Error:            err.Error(),
+		})
 		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": err.Error()})
 		return
 	}
@@ -388,6 +433,18 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Timeout: 20 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		logRequest(RequestLog{
+			Timestamp:        time.Now(),
+			Source:           "playground",
+			Model:            payload.Model,
+			Provider:         inferProvider(payload.Model),
+			PromptTokens:     promptTokens,
+			CompletionTokens: 0,
+			TotalTokens:      promptTokens,
+			LatencyMs:        time.Since(startedAt).Milliseconds(),
+			Success:          false,
+			Error:            err.Error(),
+		})
 		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": err.Error()})
 		return
 	}
@@ -395,6 +452,18 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body := readBodySnippet(resp.Body)
+		logRequest(RequestLog{
+			Timestamp:        time.Now(),
+			Source:           "playground",
+			Model:            payload.Model,
+			Provider:         inferProvider(payload.Model),
+			PromptTokens:     promptTokens,
+			CompletionTokens: 0,
+			TotalTokens:      promptTokens,
+			LatencyMs:        time.Since(startedAt).Milliseconds(),
+			Success:          false,
+			Error:            fmt.Sprintf("HTTP %s: %s", resp.Status, body),
+		})
 		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": fmt.Sprintf("HTTP %s: %s", resp.Status, body)})
 		return
 	}
@@ -408,6 +477,18 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 	}
 	raw, _ := io.ReadAll(resp.Body)
 	if err := json.Unmarshal(raw, &response); err != nil {
+		logRequest(RequestLog{
+			Timestamp:        time.Now(),
+			Source:           "playground",
+			Model:            payload.Model,
+			Provider:         inferProvider(payload.Model),
+			PromptTokens:     promptTokens,
+			CompletionTokens: 0,
+			TotalTokens:      promptTokens,
+			LatencyMs:        time.Since(startedAt).Milliseconds(),
+			Success:          true,
+			Error:            "",
+		})
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"success":  true,
 			"response": string(raw),
@@ -418,6 +499,20 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 	if len(response.Choices) > 0 {
 		text = response.Choices[0].Message.Content
 	}
+	completionTokens := estimateTokens(text)
+	totalTokens := promptTokens + completionTokens
+	logRequest(RequestLog{
+		Timestamp:        time.Now(),
+		Source:           "playground",
+		Model:            payload.Model,
+		Provider:         inferProvider(payload.Model),
+		PromptTokens:     promptTokens,
+		CompletionTokens: completionTokens,
+		TotalTokens:      totalTokens,
+		LatencyMs:        time.Since(startedAt).Milliseconds(),
+		Success:          true,
+		Error:            "",
+	})
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"success":  true,

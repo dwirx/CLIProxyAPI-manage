@@ -15,7 +15,7 @@ type PriceState = {
   entries: PriceEntry[];
 };
 
-const PRICE_URL = 'https://www.llm-prices.com/current-v1.json';
+const PRICE_URL = '/api/pricing';
 
 function toNumber(value: unknown): number | null {
   if (typeof value === 'number' && !Number.isNaN(value)) return value;
@@ -188,7 +188,7 @@ export function PricingAnalyzer() {
       } catch (err) {
         setState({
           loading: false,
-          error: 'Failed to load pricing data. Check your network or CORS settings.',
+          error: 'Failed to load pricing data. Check your network or API server connectivity.',
           entries: []
         });
       }
@@ -251,6 +251,10 @@ export function PricingAnalyzer() {
       ) : state.error ? (
         <div className="rounded-2xl border border-error/40 bg-error/10 p-4 text-sm text-error">
           {state.error}
+        </div>
+      ) : state.entries.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-base-300/50 p-4 text-sm text-slate-400">
+          Pricing data is not available yet. Check API connectivity or try again later.
         </div>
       ) : (
         <div className="grid gap-4">
