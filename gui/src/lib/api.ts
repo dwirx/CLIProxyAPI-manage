@@ -1,3 +1,5 @@
+import type { QuotaRule } from './quota';
+
 export type Status = {
   running: boolean;
   pid?: number;
@@ -85,6 +87,36 @@ export type AnalyticsRecent = {
   error?: string;
 };
 
+export type AccountInfo = {
+  id: string;
+  provider: string;
+  email: string;
+  lastUsed: string;
+  current: boolean;
+  disabled: boolean;
+};
+
+export type ModelUsageEntry = {
+  model: string;
+  provider: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  requests: number;
+  lastUsed: string;
+};
+
+export type AccountModelUsageEntry = {
+  accountId: string;
+  model: string;
+  provider: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  requests: number;
+  lastUsed: string;
+};
+
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
 async function getJson<T>(url: string): Promise<T> {
@@ -131,6 +163,42 @@ export const api = {
   testApi: (apiKey: string) => postJson<ApiTestResponse>('/api/test', { apiKey }),
   analyticsSummary: () => getJson<AnalyticsSummary>('/api/analytics/summary'),
   analyticsRecent: () => getJson<AnalyticsRecent>('/api/analytics/recent'),
+  accounts: () => getJson<{ success: boolean; accounts: AccountInfo[] }>('/api/accounts'),
+  deleteAccount: (id: string) =>
+    postJson<{ success: boolean; error?: string }>('/api/accounts/delete', { id }),
+  setCurrentAccounts: (ids: string[]) =>
+    postJson<{ success: boolean; updated?: number; error?: string }>('/api/accounts/current', {
+      ids
+    }),
+  disableAccounts: (ids: string[]) =>
+    postJson<{ success: boolean; updated?: number; error?: string }>('/api/accounts/disable', {
+      ids
+    }),
+  enableAccounts: (ids: string[]) =>
+    postJson<{ success: boolean; updated?: number; error?: string }>('/api/accounts/enable', {
+      ids
+    }),
+  modelUsage: (opts: { days?: number; hours?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.days) params.set('days', String(opts.days));
+    if (opts.hours) params.set('hours', String(opts.hours));
+    const query = params.toString();
+    return getJson<{ success: boolean; entries: ModelUsageEntry[] }>(
+      `/api/analytics/models${query ? `?${query}` : ''}`
+    );
+  },
+  accountModelUsage: (opts: { days?: number; hours?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.days) params.set('days', String(opts.days));
+    if (opts.hours) params.set('hours', String(opts.hours));
+    const query = params.toString();
+    return getJson<{ success: boolean; entries: AccountModelUsageEntry[] }>(
+      `/api/analytics/accounts${query ? `?${query}` : ''}`
+    );
+  },
+  quotaRules: () => getJson<{ success: boolean; rules: QuotaRule[]; error?: string }>('/api/quota'),
+  saveQuotaRules: (rules: QuotaRule[]) =>
+    postJson<{ success: boolean; error?: string }>('/api/quota', { rules }),
   oauthStart: (provider: string) => postJson<OAuthSession>(`/api/oauth/${provider}`, {}),
   oauthStatus: (sessionId: string) => getJson<OAuthSession>(`/api/oauth/session/${sessionId}`),
   oauthInput: (sessionId: string, input: string) =>

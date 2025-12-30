@@ -1,4 +1,6 @@
+import { CliIntegrations } from '../components/CliIntegrations';
 import { ConfigEditor } from '../components/ConfigEditor';
+import { QuotaLimits } from '../components/QuotaLimits';
 
 export function Settings() {
   return (
@@ -18,6 +20,8 @@ export function Settings() {
           The database is created automatically when the first request is logged.
         </p>
       </section>
+      <CliIntegrations />
+      <QuotaLimits />
       <ConfigEditor />
     </div>
   );

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -65,11 +66,19 @@ func guiMux() http.Handler {
 	mux.HandleFunc("/api/oauth/", handleOAuth)
 	mux.HandleFunc("/api/oauth/session/", handleOAuthSession)
 	mux.HandleFunc("/api/stats", handleStats)
+	mux.HandleFunc("/api/accounts", handleAccounts)
+	mux.HandleFunc("/api/accounts/delete", handleAccountDelete)
+	mux.HandleFunc("/api/accounts/current", handleAccountSetCurrent)
+	mux.HandleFunc("/api/accounts/disable", handleAccountDisable)
+	mux.HandleFunc("/api/accounts/enable", handleAccountEnable)
 	mux.HandleFunc("/api/test", handleTestAPI)
 	mux.HandleFunc("/api/playground", handlePlayground)
 	mux.HandleFunc("/api/analytics/summary", handleAnalyticsSummary)
 	mux.HandleFunc("/api/analytics/recent", handleAnalyticsRecent)
+	mux.HandleFunc("/api/analytics/models", handleModelUsage)
+	mux.HandleFunc("/api/analytics/accounts", handleAccountModelUsage)
 	mux.HandleFunc("/api/pricing", handlePricing)
+	mux.HandleFunc("/api/quota", handleQuotaRules)
 	mux.HandleFunc("/api/update/check", handleUpdateCheck)
 	mux.HandleFunc("/api/update/apply", handleUpdateApply)
 	mux.HandleFunc("/api/version", handleVersion)
@@ -251,6 +260,103 @@ func handleAnalyticsRecent(w http.ResponseWriter, r *http.Request) {
 	}
 	result := getAnalyticsRecent(30)
 	writeJSON(w, http.StatusOK, result)
+}
+
+func handleModelUsage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	days := 7
+	hours := 0
+	account := strings.TrimSpace(r.URL.Query().Get("account"))
+	if value := r.URL.Query().Get("days"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			days = parsed
+		}
+	}
+	if value := r.URL.Query().Get("hours"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			hours = parsed
+		}
+	}
+	entries, err := getModelUsage(days, hours, account)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{"success": false, "error": err.Error(), "entries": []ModelUsageEntry{}})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "entries": entries})
+}
+
+func handleAccountModelUsage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	days := 7
+	hours := 0
+	if value := r.URL.Query().Get("days"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			days = parsed
+		}
+	}
+	if value := r.URL.Query().Get("hours"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			hours = parsed
+		}
+	}
+	entries, err := getAccountModelUsage(days, hours)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+			"entries": []AccountModelUsageEntry{},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "entries": entries})
+}
+
+func handleQuotaRules(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		rules, err := loadQuotaRules()
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+				"rules":   rules,
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"rules":   rules,
+		})
+	case http.MethodPost:
+		var payload struct {
+			Rules []QuotaRule `json:"rules"`
+		}
+		if err := readJSONBody(r.Body, &payload); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"success": false,
+				"error":   "invalid JSON",
+			})
+			return
+		}
+		if err := saveQuotaRules(payload.Rules); err != nil {
+			writeJSON(w, http.StatusOK, map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+		})
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+	}
 }
 
 func handlePricing(w http.ResponseWriter, r *http.Request) {

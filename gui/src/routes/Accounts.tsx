@@ -1,10 +1,14 @@
 import { KeyRound } from 'lucide-react';
+import { AntigravityOverview } from '../components/AntigravityOverview';
+import { AccountsTable } from '../components/AccountsTable';
 import { ProvidersGrid } from '../components/ProvidersGrid';
 
 export function Accounts() {
   return (
     <div className="grid gap-6">
+      <AntigravityOverview />
       <ProvidersGrid />
+      <AccountsTable />
       <section className="section-card grid gap-3">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-primary/20 p-2 text-primary">

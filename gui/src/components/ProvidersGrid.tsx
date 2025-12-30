@@ -10,7 +10,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, OAuthSession } from '../lib/api';
+import { CopyToast } from './CopyToast';
 import { useAppStore } from '../store/useAppStore';
+import { useCopyFeedback } from '../lib/useCopyFeedback';
 
 const providers = [
   { id: 'gemini', label: 'Gemini', icon: Sparkles },
@@ -27,12 +29,15 @@ export function ProvidersGrid() {
   const authStatus = useAppStore((state) => state.authStatus);
   const refreshAuth = useAppStore((state) => state.refreshAuth);
   const addLog = useAppStore((state) => state.addLog);
+  const oauthProvider = useAppStore((state) => state.oauthProvider);
+  const setOauthProvider = useAppStore((state) => state.setOauthProvider);
   const [session, setSession] = useState<OAuthSession | null>(null);
   const [input, setInput] = useState('');
   const outputRef = useRef<HTMLDivElement | null>(null);
   const authUrl = useMemo(() => extractAuthUrl(session?.output ?? ''), [session?.output]);
   const sshCommand = useMemo(() => extractSSHCommand(session?.output ?? ''), [session?.output]);
   const lastRunningRef = useRef<boolean>(false);
+  const copyFeedback = useCopyFeedback();
 
   const login = async (provider: string) => {
     addLog({
@@ -52,6 +57,13 @@ export function ProvidersGrid() {
     setSession(result);
     setInput('');
   };
+
+  useEffect(() => {
+    if (!oauthProvider) {
+      return;
+    }
+    login(oauthProvider).finally(() => setOauthProvider(null));
+  }, [oauthProvider, setOauthProvider]);
 
   useEffect(() => {
     if (!session?.sessionId) {
@@ -128,12 +140,14 @@ export function ProvidersGrid() {
   const copyText = async (label: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
+      copyFeedback.trigger(`${label} copied`);
       addLog({
         time: new Date().toLocaleTimeString(),
         message: `${label} copied to clipboard`,
         type: 'success'
       });
     } catch (err) {
+      copyFeedback.trigger(`Failed to copy ${label}`);
       addLog({
         time: new Date().toLocaleTimeString(),
         message: `Failed to copy ${label}`,
@@ -194,7 +208,8 @@ export function ProvidersGrid() {
       </section>
       {session && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4">
-          <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950/95 p-6 shadow-2xl">
+          <div className="relative w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950/95 p-6 shadow-2xl">
+            <CopyToast message={copyFeedback.message} />
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-slate-400">OAuth Console</p>
@@ -231,24 +246,32 @@ export function ProvidersGrid() {
             <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-base-200/30 p-4 text-xs text-slate-300">
               <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Quick Actions</p>
               {authUrl ? (
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <div className="grid gap-2">
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <button
+                      onClick={() => window.open(authUrl, '_blank', 'noopener,noreferrer')}
+                      className="inline-flex items-center justify-center rounded-xl bg-primary/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary"
+                    >
+                      Open Authentication Link
+                    </button>
+                    <button
+                      onClick={() => copyText('Auth link', authUrl)}
+                      className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-200 transition hover:text-white"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
                   <a
                     href={authUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-xl bg-primary/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary"
+                    className="truncate text-xs text-primary underline decoration-primary/40 underline-offset-4 hover:text-primary/80"
                   >
-                    Open Authentication Link
+                    {authUrl}
                   </a>
-                  <button
-                    onClick={() => copyText('Auth link', authUrl)}
-                    className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-200 transition hover:text-white"
-                  >
-                    Copy Link
-                  </button>
                 </div>
               ) : (
-                <p className="text-slate-400">Waiting for authentication URL…</p>
+                <p className="text-slate-400">Waiting for authentication URL...</p>
               )}
               {sshCommand ? (
                 <div className="grid gap-2">

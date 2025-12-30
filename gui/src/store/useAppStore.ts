@@ -14,8 +14,10 @@ type AppState = {
   models: string[];
   authStatus: Record<string, boolean>;
   logs: LogEntry[];
+  oauthProvider: string | null;
   selectedModel: string;
   setSelectedModel: (model: string) => void;
+  setOauthProvider: (provider: string | null) => void;
   refreshStatus: () => Promise<void>;
   refreshStats: () => Promise<void>;
   refreshModels: () => Promise<void>;
@@ -32,10 +34,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   models: [],
   authStatus: {},
   logs: [],
+  oauthProvider: null,
   selectedModel: localStorage.getItem('selectedModel') || '',
   setSelectedModel: (model) => {
     localStorage.setItem('selectedModel', model);
     set({ selectedModel: model });
+  },
+  setOauthProvider: (provider) => {
+    set({ oauthProvider: provider });
   },
   refreshStatus: async () => {
     try {

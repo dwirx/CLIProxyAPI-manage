@@ -4,19 +4,21 @@ Go-based replacement for the PowerShell scripts in `CLIProxyAPIPlus-Easy-Install
 
 ## Features
 
-- 🚀 **Easy Installation** - Download and install the latest CLIProxyAPIPlus server binary
-- 🔄 **Update Management** - Update server binary to the latest version
-- ⚙️ **Configuration Management** - Automatically create and manage `config.yaml` and Factory Droid config
-- 🔐 **OAuth Helper** - Interactive OAuth login helper for multiple providers
-- 🖥️ **GUI Control Center** - Local web-based control panel for server management
-- 🎯 **Server Control** - Start, stop, restart, and monitor server status
-- 📊 **Logs & Status** - View server logs and check status
+- **Easy Installation** - Download and install the latest CLIProxyAPIPlus server binary
+- **Update Management** - Update server binary to the latest version
+- **Configuration Management** - Automatically create and manage `config.yaml` and Factory Droid config
+- **OAuth Helper** - Interactive OAuth login helper for multiple providers (CLI + GUI)
+- **Accounts Manager** - Multi-account OAuth tokens with set current + delete
+- **GUI Control Center** - Local web-based control panel for server management
+- **Server Control** - Start, stop, restart, and monitor server status
+- **Analytics** - SQLite-backed usage analytics, pricing, and model usage
 
 ## Requirements
 
 - Go 1.21 or higher
 - Git (for cloning repository)
 - Internet connection (for downloading releases)
+- Node.js 18+ (only needed to build the GUI)
 
 ## Installation
 
@@ -69,7 +71,7 @@ This command will:
 betacliproxyapi oauth --all
 
 # Or setup specific provider
-betacliproxyapi oauth --provider openai
+betacliproxyapi oauth --gemini
 ```
 
 ### 3. Start the Server
@@ -102,6 +104,40 @@ npm install
 npm run build
 ```
 
+## GUI Highlights
+
+### Dashboard
+
+The dashboard provides a realtime view of:
+- Total requests, tokens, RPM, TPM, and estimated cost
+- Request trends and cost breakdown
+- Rate limit overview and system health
+
+### Accounts (Multi-Account OAuth)
+
+The Accounts page lets you:
+- Add new OAuth logins from the GUI
+- Manage multiple accounts per provider
+- Set the "current" account (most recently used token file)
+- Delete old or unused token files
+- Filter by provider and apply bulk actions
+
+**How "Current" works**
+- Each provider uses the most recently updated token file.
+- "Set current" touches the selected token file(s) to make them most recent.
+
+### Playground
+
+- Run prompts against any model
+- Live Markdown preview (toggle Raw/Preview)
+- Copy response with visual feedback
+
+### Analytics & Pricing
+
+- Usage logs stored in `~/.cli-proxy-api/dataproxy.db`
+- Pricing data pulled from `https://www.llm-prices.com/current-v1.json`
+- Model usage derived from real request logs (last 7 days by default)
+
 ## Commands
 
 ### `install`
@@ -109,34 +145,38 @@ npm run build
 Install CLIProxyAPIPlus and create initial configuration.
 
 ```bash
-betacliproxyapi install [--force]
+betacliproxyapi install [--force] [--skip-oauth] [--source]
 ```
 
 Options:
 - `--force` - Force reinstall even if already installed
+- `--skip-oauth` - Skip OAuth hints after install
+- `--source` - Build CLIProxyAPIPlus from source instead of downloading
 
 ### `update`
 
 Update CLIProxyAPIPlus binary to the latest version.
 
 ```bash
-betacliproxyapi update [--check-only]
+betacliproxyapi update [--force] [--source]
 ```
 
 Options:
-- `--check-only` - Only check for updates without installing
+- `--force` - Overwrite existing binary
+- `--source` - Build from source instead of downloading
 
 ### `start`
 
 Start the CLIProxyAPIPlus server.
 
 ```bash
-betacliproxyapi start [--background] [--port PORT]
+betacliproxyapi start [--background] [--config PATH] [--bin PATH]
 ```
 
 Options:
 - `--background` - Run server in background (daemon mode)
-- `--port` - Override server port (default: 8317)
+- `--config` - Override config.yaml path
+- `--bin` - Override CLIProxyAPIPlus binary path
 
 ### `stop`
 
@@ -167,36 +207,42 @@ betacliproxyapi status
 View server logs.
 
 ```bash
-betacliproxyapi logs [--follow] [--lines N]
+betacliproxyapi logs [--tail N]
 ```
 
 Options:
-- `--follow` - Follow log output (like `tail -f`)
-- `--lines` - Number of lines to show (default: 50)
+- `--tail` - Number of lines to show (default: 80)
 
 ### `oauth`
 
 Run OAuth login helper for authentication providers.
 
 ```bash
-betacliproxyapi oauth [--all] [--provider PROVIDER]
+betacliproxyapi oauth [--all] [--gemini] [--antigravity] [--copilot] [--codex] [--claude] [--qwen] [--iflow] [--kiro]
 ```
 
 Options:
 - `--all` - Setup OAuth for all supported providers
-- `--provider` - Setup OAuth for specific provider (openai, anthropic, etc.)
+- `--gemini` - Setup OAuth for Gemini
+- `--antigravity` - Setup OAuth for Antigravity
+- `--copilot` - Setup OAuth for GitHub Copilot
+- `--codex` - Setup OAuth for Codex
+- `--claude` - Setup OAuth for Claude
+- `--qwen` - Setup OAuth for Qwen
+- `--iflow` - Setup OAuth for iFlow
+- `--kiro` - Setup OAuth for Kiro (AWS)
 
 ### `gui`
 
 Start the Control Center GUI.
 
 ```bash
-betacliproxyapi gui [--port PORT] [--open-browser]
+betacliproxyapi gui [--port PORT] [--no-browser]
 ```
 
 Options:
 - `--port` - GUI server port (default: 8318)
-- `--open-browser` - Automatically open browser
+- `--no-browser` - Do not open browser automatically
 
 ### `uninstall`
 
@@ -242,6 +288,13 @@ Key settings:
 - `quota-exceeded` - Auto-switch behavior when quota exceeded
 - `remote-management` - Remote access settings
 
+#### `~/.cli-proxy-api/dataproxy.db`
+
+Analytics database used by the GUI:
+- Auto-created on first request
+- Stores request logs and model usage
+- Used for model quota and usage charts
+
 #### `~/.factory/config.json`
 
 Factory Droid configuration. See `configs/droid-config.json.example` for reference.
@@ -250,23 +303,23 @@ Factory Droid configuration. See `configs/droid-config.json.example` for referen
 
 ```
 betaCLIProxyAPI/
-├── cmd/
-│   └── betacliproxyapi/     # Main application code
-│       ├── main.go          # Entry point
-│       ├── install.go       # Installation logic
-│       ├── update.go        # Update logic
-│       ├── server.go        # Server control
-│       ├── oauth.go         # OAuth helper
-│       ├── gui.go           # GUI server
-│       └── ...
-├── configs/                 # Configuration examples
-│   ├── config.yaml.example
-│   └── droid-config.json.example
-├── scripts/                 # Build scripts
-│   ├── build.sh
-│   └── build.ps1
-├── go.mod                   # Go module definition
-└── README.md               # This file
+- cmd/                      # Main application code
+  - betacliproxyapi/
+    - main.go               # Entry point
+    - install.go            # Installation logic
+    - update.go             # Update logic
+    - server.go             # Server control
+    - oauth.go              # OAuth helper
+    - gui.go                # GUI server
+    - ...
+- configs/                  # Configuration examples
+  - config.yaml.example
+  - droid-config.json.example
+- scripts/                  # Build scripts
+  - build.sh
+  - build.ps1
+- go.mod                    # Go module definition
+- README.md                 # This file
 ```
 
 ## Default Paths
@@ -292,6 +345,15 @@ go build -ldflags "-X main.version=$(git describe --tags)" -o betacliproxyapi ./
 
 ```bash
 go test ./...
+```
+
+### SQLite Driver Notes
+
+Analytics use the pure-Go SQLite driver by default (modernc). If you want to use
+`mattn/go-sqlite3`, build with:
+
+```bash
+go build -tags sqlite3 ./cmd/betacliproxyapi
 ```
 
 ### Code Structure

@@ -50,3 +50,48 @@ body {
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.markdown-preview {
+  line-height: 1.7;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.markdown-preview p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-preview a {
+  color: #38bdf8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.markdown-preview code {
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+}
+
+.markdown-preview pre {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.6);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
