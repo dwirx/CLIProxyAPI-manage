@@ -276,6 +276,103 @@ export CLIPROXY_BIN_DIR="$HOME/.local/bin"                # Binary directory
 export CLIPROXY_FACTORY_DIR="$HOME/.custom-factory"       # Factory Droid directory
 ```
 
+### CLI Tool Integration (Claude Code)
+
+Point Claude Code at the local CLIProxyAPI server so it can use any provider you have configured.
+
+1. Start the server:
+   ```bash
+   betacliproxyapi start
+   ```
+2. Export the base URL and auth token (use a key from `api-keys` in `config.yaml`):
+   ```bash
+   export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
+   export ANTHROPIC_AUTH_TOKEN="sk-dummy"
+   ```
+3. Set model mapping variables based on your Claude Code version and provider. Wrap model
+   names in quotes (especially if they include parentheses).
+
+Claude Code 2.x.x (preferred):
+```bash
+export ANTHROPIC_DEFAULT_OPUS_MODEL="your-opus-model"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="your-sonnet-model"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="your-haiku-model"
+```
+
+Claude Code 1.x.x:
+```bash
+export ANTHROPIC_MODEL="your-default-model"
+export ANTHROPIC_SMALL_FAST_MODEL="your-fast-model"
+```
+
+Example mappings by provider:
+
+Gemini
+```bash
+# version 2.x.x
+export ANTHROPIC_DEFAULT_OPUS_MODEL="gemini-2.5-pro"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="gemini-2.5-flash"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="gemini-2.5-flash-lite"
+# version 1.x.x
+export ANTHROPIC_MODEL="gemini-2.5-pro"
+export ANTHROPIC_SMALL_FAST_MODEL="gemini-2.5-flash"
+```
+
+OpenAI GPT-5
+```bash
+# version 2.x.x
+export ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5(high)"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-5(medium)"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="gpt-5(minimal)"
+# version 1.x.x
+export ANTHROPIC_MODEL="gpt-5"
+export ANTHROPIC_SMALL_FAST_MODEL="gpt-5(minimal)"
+```
+
+OpenAI GPT-5 Codex
+```bash
+# version 2.x.x
+export ANTHROPIC_DEFAULT_OPUS_MODEL="gpt-5-codex(high)"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="gpt-5-codex(medium)"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="gpt-5-codex(low)"
+# version 1.x.x
+export ANTHROPIC_MODEL="gpt-5-codex"
+export ANTHROPIC_SMALL_FAST_MODEL="gpt-5-codex(low)"
+```
+
+Claude
+```bash
+# version 2.x.x
+export ANTHROPIC_DEFAULT_OPUS_MODEL="claude-opus-4-1-20250805"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="claude-sonnet-4-5-20250929"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="claude-3-5-haiku-20241022"
+# version 1.x.x
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+export ANTHROPIC_SMALL_FAST_MODEL="claude-3-5-haiku-20241022"
+```
+
+Qwen
+```bash
+# version 2.x.x
+export ANTHROPIC_DEFAULT_OPUS_MODEL="qwen3-coder-plus"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="qwen3-coder-plus"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="qwen3-coder-flash"
+# version 1.x.x
+export ANTHROPIC_MODEL="qwen3-coder-plus"
+export ANTHROPIC_SMALL_FAST_MODEL="qwen3-coder-flash"
+```
+
+iFlow
+```bash
+# version 2.x.x
+export ANTHROPIC_DEFAULT_OPUS_MODEL="qwen3-max"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="qwen3-coder-plus"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="qwen3-235b-a22b-instruct"
+# version 1.x.x
+export ANTHROPIC_MODEL="qwen3-max"
+export ANTHROPIC_SMALL_FAST_MODEL="qwen3-235b-a22b-instruct"
+```
+
 ### Configuration Files
 
 #### `~/.cli-proxy-api/config.yaml`
