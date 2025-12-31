@@ -36,6 +36,13 @@ export function ProvidersGrid() {
   const outputRef = useRef<HTMLDivElement | null>(null);
   const authUrl = useMemo(() => extractAuthUrl(session?.output ?? ''), [session?.output]);
   const sshCommand = useMemo(() => extractSSHCommand(session?.output ?? ''), [session?.output]);
+  const deviceCode = useMemo(() => extractDeviceCode(session?.output ?? ''), [session?.output]);
+  const providerKey = session?.provider?.toLowerCase() ?? '';
+  const isDeviceFlowProvider = providerKey === 'copilot' || providerKey === 'codex';
+  const verificationUrl = useMemo(
+    () => extractVerificationUrl(session?.output ?? '') || authUrl,
+    [session?.output, authUrl]
+  );
   const lastRunningRef = useRef<boolean>(false);
   const copyFeedback = useCopyFeedback();
 
@@ -293,6 +300,62 @@ export function ProvidersGrid() {
                 then paste the callback URL below (or press Send/Enter).
               </p>
             </div>
+            {isDeviceFlowProvider && (
+              <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-black/40 p-4 text-xs text-slate-300">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                  Copilot / Codex Device Login
+                </p>
+                <div className="grid gap-2">
+                  {verificationUrl ? (
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <button
+                        onClick={() => window.open(verificationUrl, '_blank', 'noopener,noreferrer')}
+                        className="inline-flex items-center justify-center rounded-xl bg-primary/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary"
+                      >
+                        Open verification URL
+                      </button>
+                      <button
+                        onClick={() => copyText('Verification URL', verificationUrl)}
+                        className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-200 transition hover:text-white"
+                      >
+                        Copy URL
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-slate-400">Waiting for verification URL...</p>
+                  )}
+                  {verificationUrl && (
+                    <a
+                      href={verificationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate text-xs text-primary underline decoration-primary/40 underline-offset-4 hover:text-primary/80"
+                    >
+                      {verificationUrl}
+                    </a>
+                  )}
+                  {deviceCode ? (
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <div className="rounded-xl border border-white/10 bg-black/50 px-4 py-3 font-mono text-sm text-slate-200">
+                        {deviceCode}
+                      </div>
+                      <button
+                        onClick={() => copyText('Device code', deviceCode)}
+                        className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-200 transition hover:text-white"
+                      >
+                        Copy code
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-slate-400">Waiting for device code...</p>
+                  )}
+                </div>
+                <p className="text-slate-400">
+                  Steps: open the verification URL, enter the device code, approve access, then
+                  return here to finish the session.
+                </p>
+              </div>
+            )}
             {session.error && (
               <div className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-xs text-red-200">
                 {session.error}
@@ -359,4 +422,31 @@ function extractSSHCommand(output: string) {
     .map((entry) => entry.trim())
     .find((entry) => entry.startsWith('ssh -L'));
   return line ?? '';
+}
+
+function extractDeviceCode(output: string) {
+  const patterns = [
+    /device\s*code[:\s]+([A-Z0-9-]{6,})/i,
+    /user\s*code[:\s]+([A-Z0-9-]{6,})/i,
+    /code[:\s]+([A-Z0-9-]{6,})/i
+  ];
+  for (const pattern of patterns) {
+    const match = output.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+  const fallback = output.match(/[A-Z0-9]{4,}-[A-Z0-9-]{4,}/);
+  return fallback?.[0] ?? '';
+}
+
+function extractVerificationUrl(output: string) {
+  const urls = output.match(/https?:\/\/[^\s]+/gi);
+  if (!urls || urls.length === 0) {
+    return '';
+  }
+  const preferred = urls.find((url) =>
+    /(github\.com\/login\/device|microsoft\.com\/devicelogin|device|verify)/i.test(url)
+  );
+  return (preferred || urls[0]).replace(/[)>.,]+$/, '');
 }

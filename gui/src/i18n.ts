@@ -10,6 +10,7 @@ const resources = {
         dashboard: 'Dashboard',
         accounts: 'Accounts',
         proxy: 'API Proxy',
+        analytics: 'Analytics',
         settings: 'Settings'
       }
     }
@@ -21,6 +22,7 @@ const resources = {
         dashboard: 'Dashboard',
         accounts: 'Akun',
         proxy: 'API Proxy',
+        analytics: 'Analitik',
         settings: 'Pengaturan'
       }
     }

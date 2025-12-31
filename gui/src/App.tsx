@@ -5,6 +5,7 @@ import { Accounts } from './routes/Accounts';
 import { ApiProxy } from './routes/ApiProxy';
 import { Settings } from './routes/Settings';
 import { PlaygroundFull } from './routes/PlaygroundFull';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/proxy" element={<ApiProxy />} />
         <Route path="/playground" element={<PlaygroundFull />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>

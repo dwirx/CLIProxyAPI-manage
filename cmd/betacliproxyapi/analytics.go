@@ -17,6 +17,7 @@ type RequestLog struct {
 	Model            string
 	Provider         string
 	AccountID        string
+	User             string
 	PromptTokens     int
 	CompletionTokens int
 	TotalTokens      int
@@ -59,9 +60,13 @@ type AnalyticsRecentEntry struct {
 	Timestamp   string `json:"timestamp"`
 	Model       string `json:"model"`
 	Provider    string `json:"provider"`
+	User        string `json:"user,omitempty"`
+	AccountID   string `json:"accountId,omitempty"`
 	TotalTokens int    `json:"totalTokens"`
+	Cost        string `json:"cost,omitempty"`
 	LatencyMs   int64  `json:"latencyMs"`
 	Success     bool   `json:"success"`
+	Type        string `json:"type,omitempty"`
 	Error       string `json:"error,omitempty"`
 }
 
@@ -124,6 +129,7 @@ func getAnalyticsDB() (*sql.DB, error) {
 				model text,
 				provider text,
 				account_id text,
+				user text,
 				prompt_tokens integer,
 				completion_tokens integer,
 				total_tokens integer,
@@ -133,6 +139,8 @@ func getAnalyticsDB() (*sql.DB, error) {
 			);
 			create index if not exists idx_request_logs_ts on request_logs(ts);
 			create index if not exists idx_request_logs_model on request_logs(model);
+			create index if not exists idx_request_logs_provider on request_logs(provider);
+			create index if not exists idx_request_logs_user on request_logs(user);
 		`); err != nil {
 			analyticsErr = err
 			_ = db.Close()
@@ -177,6 +185,24 @@ func ensureRequestLogColumns(ctx context.Context, db *sql.DB) error {
 	if columns["account_id"] {
 		_, _ = db.ExecContext(ctx, `create index if not exists idx_request_logs_account on request_logs(account_id);`)
 	}
+	if !columns["user"] {
+		if _, err := db.ExecContext(ctx, `alter table request_logs add column user text;`); err != nil {
+			return err
+		}
+		columns["user"] = true
+	}
+	if columns["user"] {
+		_, _ = db.ExecContext(ctx, `create index if not exists idx_request_logs_user on request_logs(user);`)
+	}
+	if !columns["provider"] {
+		if _, err := db.ExecContext(ctx, `alter table request_logs add column provider text;`); err != nil {
+			return err
+		}
+		columns["provider"] = true
+	}
+	if columns["provider"] {
+		_, _ = db.ExecContext(ctx, `create index if not exists idx_request_logs_provider on request_logs(provider);`)
+	}
 	return nil
 }
 
@@ -192,14 +218,15 @@ func logRequest(entry RequestLog) {
 		accountID = resolveAccountID(entry.Provider)
 	}
 	_, _ = db.ExecContext(ctx, `
-		insert into request_logs (ts, source, model, provider, account_id, prompt_tokens, completion_tokens, total_tokens, latency_ms, success, error)
-		values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		insert into request_logs (ts, source, model, provider, account_id, user, prompt_tokens, completion_tokens, total_tokens, latency_ms, success, error)
+		values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		entry.Timestamp.Format(time.RFC3339),
 		entry.Source,
 		entry.Model,
 		entry.Provider,
 		accountID,
+		entry.User,
 		entry.PromptTokens,
 		entry.CompletionTokens,
 		entry.TotalTokens,
@@ -405,7 +432,7 @@ func getAnalyticsRecent(limit int) AnalyticsRecent {
 	defer cancel()
 
 	rows, err := db.QueryContext(ctx, `
-		select ts, model, provider, total_tokens, latency_ms, success, error
+		select ts, model, provider, coalesce(user, ''), coalesce(account_id, ''), total_tokens, latency_ms, success, error
 		from request_logs
 		order by id desc
 		limit ?
@@ -420,18 +447,27 @@ func getAnalyticsRecent(limit int) AnalyticsRecent {
 		var ts string
 		var model string
 		var provider string
+		var user string
+		var accountID string
 		var totalTokens int
 		var latencyMs int64
 		var success int
 		var errMsg sql.NullString
-		if err := rows.Scan(&ts, &model, &provider, &totalTokens, &latencyMs, &success, &errMsg); err == nil {
+		if err := rows.Scan(&ts, &model, &provider, &user, &accountID, &totalTokens, &latencyMs, &success, &errMsg); err == nil {
+			entryType := "Included"
+			if totalTokens == 0 {
+				entryType = "Aborted, Not Charged"
+			}
 			entry := AnalyticsRecentEntry{
 				Timestamp:   ts,
 				Model:       model,
 				Provider:    provider,
+				User:        user,
+				AccountID:   accountID,
 				TotalTokens: totalTokens,
 				LatencyMs:   latencyMs,
 				Success:     success == 1,
+				Type:        entryType,
 				Error:       errMsg.String,
 			}
 			entries = append(entries, entry)
@@ -577,5 +613,142 @@ func queryAccountModelUsage(ctx context.Context, since string) ([]AccountModelUs
 			})
 		}
 	}
+	return entries, nil
+}
+
+type HeatmapDayEntry struct {
+	Date     string `json:"date"`
+	Requests int    `json:"requests"`
+	Level    int    `json:"level"`
+}
+
+func getAnalyticsHeatmap(days int) ([]HeatmapDayEntry, error) {
+	db, err := getAnalyticsDB()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if days <= 0 {
+		days = 365
+	}
+	since := time.Now().AddDate(0, 0, -days).Format(time.RFC3339)
+
+	rows, err := db.QueryContext(ctx, `
+		select substr(ts, 1, 10) as day, count(*) as requests
+		from request_logs
+		where ts >= ?
+		group by day
+		order by day asc
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	entries := []HeatmapDayEntry{}
+	maxRequests := 0
+	tempEntries := []struct {
+		date     string
+		requests int
+	}{}
+
+	for rows.Next() {
+		var date string
+		var requests int
+		if err := rows.Scan(&date, &requests); err == nil {
+			tempEntries = append(tempEntries, struct {
+				date     string
+				requests int
+			}{date, requests})
+			if requests > maxRequests {
+				maxRequests = requests
+			}
+		}
+	}
+
+	for _, e := range tempEntries {
+		level := 0
+		if maxRequests > 0 {
+			ratio := float64(e.requests) / float64(maxRequests)
+			if ratio > 0.75 {
+				level = 4
+			} else if ratio > 0.5 {
+				level = 3
+			} else if ratio > 0.25 {
+				level = 2
+			} else if ratio > 0 {
+				level = 1
+			}
+		}
+		entries = append(entries, HeatmapDayEntry{
+			Date:     e.date,
+			Requests: e.requests,
+			Level:    level,
+		})
+	}
+
+	return entries, nil
+}
+
+type UserUsageEntry struct {
+	User         string `json:"user"`
+	Requests     int    `json:"requests"`
+	TotalTokens  int    `json:"totalTokens"`
+	Models       int    `json:"models"`
+	LastActivity string `json:"lastActivity"`
+}
+
+func getUserUsage(days int) ([]UserUsageEntry, error) {
+	db, err := getAnalyticsDB()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if days <= 0 {
+		days = 7
+	}
+	since := time.Now().AddDate(0, 0, -days).Format(time.RFC3339)
+
+	rows, err := db.QueryContext(ctx, `
+		select
+			coalesce(user, 'Unknown') as user,
+			count(*) as requests,
+			coalesce(sum(total_tokens), 0) as total_tokens,
+			count(distinct model) as models,
+			max(ts) as last_activity
+		from request_logs
+		where ts >= ? and user != ''
+		group by user
+		order by total_tokens desc
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	entries := []UserUsageEntry{}
+	for rows.Next() {
+		var user string
+		var requests int
+		var totalTokens int
+		var models int
+		var lastActivity string
+		if err := rows.Scan(&user, &requests, &totalTokens, &models, &lastActivity); err == nil {
+			entries = append(entries, UserUsageEntry{
+				User:         user,
+				Requests:     requests,
+				TotalTokens:  totalTokens,
+				Models:       models,
+				LastActivity: lastActivity,
+			})
+		}
+	}
+
 	return entries, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -163,9 +164,118 @@ func authStatus() map[string]bool {
 	}
 
 	status := map[string]bool{}
+	authDir := resolveAuthDir()
+	statusByType := authTypesInDir(authDir)
 	for key, pattern := range patterns {
-		matches, _ := filepath.Glob(filepath.Join(configDir(), pattern))
+		if statusByType[key] {
+			status[key] = true
+			continue
+		}
+		matches, _ := filepath.Glob(filepath.Join(authDir, pattern))
 		status[key] = len(matches) > 0
 	}
 	return status
+}
+
+func resolveAuthDir() string {
+	fallback := configDir()
+	data, err := os.ReadFile(configPath())
+	if err != nil {
+		return fallback
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if !strings.HasPrefix(line, "auth-dir:") {
+			continue
+		}
+		value := strings.TrimSpace(strings.TrimPrefix(line, "auth-dir:"))
+		if idx := strings.Index(value, "#"); idx != -1 {
+			value = strings.TrimSpace(value[:idx])
+		}
+		value = strings.Trim(value, "\"'")
+		if value == "" {
+			return fallback
+		}
+		value = expandHome(value)
+		if !filepath.IsAbs(value) {
+			value = filepath.Join(fallback, value)
+		}
+		return filepath.Clean(value)
+	}
+	return fallback
+}
+
+func expandHome(path string) string {
+	if path == "" {
+		return path
+	}
+	if path == "~" {
+		return homeDir()
+	}
+	if strings.HasPrefix(path, "~/") || strings.HasPrefix(path, "~\\") {
+		return filepath.Join(homeDir(), path[2:])
+	}
+	return path
+}
+
+func authTypesInDir(authDir string) map[string]bool {
+	status := map[string]bool{}
+	entries, err := os.ReadDir(authDir)
+	if err != nil {
+		return status
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		full := filepath.Join(authDir, name)
+		data, err := os.ReadFile(full)
+		if err != nil {
+			continue
+		}
+		var meta struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(data, &meta); err != nil {
+			continue
+		}
+		provider, ok := normalizeAuthType(meta.Type)
+		if !ok {
+			continue
+		}
+		status[provider] = true
+	}
+	return status
+}
+
+func normalizeAuthType(value string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "github-copilot", "copilot":
+		return "copilot", true
+	case "openai", "codex":
+		return "codex", true
+	case "gemini", "google":
+		return "gemini", true
+	case "antigravity":
+		return "antigravity", true
+	case "claude", "anthropic":
+		return "claude", true
+	case "qwen":
+		return "qwen", true
+	case "iflow":
+		return "iflow", true
+	case "kiro", "kiro-aws":
+		return "kiro", true
+	default:
+		return "", false
+	}
 }

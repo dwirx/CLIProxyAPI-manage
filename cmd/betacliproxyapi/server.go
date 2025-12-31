@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -157,7 +158,12 @@ func startServer(opts startOptions) error {
 func stopServer() error {
 	pid, err := readPid()
 	if err != nil {
-		printWarning("PID file not found, attempting graceful stop by port")
+		port := resolvePortFromConfig(configPath(), 8317)
+		if isPortOpen(port) {
+			printWarning("PID file not found; server might already be running without a PID")
+		} else {
+			printWarning("Server already stopped (no PID file found)")
+		}
 		return nil
 	}
 	proc, err := os.FindProcess(pid)
@@ -165,11 +171,27 @@ func stopServer() error {
 		return err
 	}
 	if err := proc.Kill(); err != nil {
+		if isProcessAlreadyFinished(err) {
+			removePid()
+			printWarning("Server already stopped (stale PID removed)")
+			return nil
+		}
 		return err
 	}
 	removePid()
 	printSuccess("Server stopped")
 	return nil
+}
+
+func isProcessAlreadyFinished(err error) bool {
+	if err == nil {
+		return false
+	}
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "process already finished") ||
+		strings.Contains(lower, "no such process") ||
+		strings.Contains(lower, "process does not exist") ||
+		strings.Contains(lower, "not found")
 }
 
 func getServerStatus() ServerStatus {

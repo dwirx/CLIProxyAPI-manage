@@ -77,6 +77,8 @@ func guiMux() http.Handler {
 	mux.HandleFunc("/api/analytics/recent", handleAnalyticsRecent)
 	mux.HandleFunc("/api/analytics/models", handleModelUsage)
 	mux.HandleFunc("/api/analytics/accounts", handleAccountModelUsage)
+	mux.HandleFunc("/api/analytics/heatmap", handleAnalyticsHeatmap)
+	mux.HandleFunc("/api/analytics/users", handleUserUsage)
 	mux.HandleFunc("/api/pricing", handlePricing)
 	mux.HandleFunc("/api/quota", handleQuotaRules)
 	mux.HandleFunc("/api/update/check", handleUpdateCheck)
@@ -311,6 +313,52 @@ func handleAccountModelUsage(w http.ResponseWriter, r *http.Request) {
 			"success": false,
 			"error":   err.Error(),
 			"entries": []AccountModelUsageEntry{},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "entries": entries})
+}
+
+func handleAnalyticsHeatmap(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	days := 365
+	if value := r.URL.Query().Get("days"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			days = parsed
+		}
+	}
+	entries, err := getAnalyticsHeatmap(days)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+			"entries": []HeatmapDayEntry{},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true, "entries": entries})
+}
+
+func handleUserUsage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	days := 7
+	if value := r.URL.Query().Get("days"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			days = parsed
+		}
+	}
+	entries, err := getUserUsage(days)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+			"entries": []UserUsageEntry{},
 		})
 		return
 	}
